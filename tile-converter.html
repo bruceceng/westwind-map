@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ZIP to JS Converter</title>
+  <style>
+    body { font-family: sans-serif; padding: 40px; background: #f4f4f9; }
+    .card { background: white; padding: 24px; border-radius: 8px; max-width: 500px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    button { margin-top: 16px; padding: 10px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    #status { margin-top: 16px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Map Tiles JS Generator</h2>
+    <p>Select your <code>map_tiles.zip</code> to package it into a <code>tiles_data.js</code> file.</p>
+    <input type="file" id="zipFileInput" accept=".zip">
+    <br>
+    <button id="convertBtn">Generate tiles_data.js</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    document.getElementById('convertBtn').addEventListener('click', () => {
+      const input = document.getElementById('zipFileInput');
+      const status = document.getElementById('status');
+
+      if (!input.files.length) {
+        status.innerText = "Please select a zip file first.";
+        return;
+      }
+
+      const file = input.files[0];
+      status.innerText = "Reading file and encoding to Base64...";
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result.split(',')[1];
+        const jsContent = `window.MAP_TILES_BASE64 = "${base64Data}";`;
+
+        const blob = new Blob([jsContent], { type: 'text/javascript' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'tiles_data.js';
+        a.click();
+        URL.revokeObjectURL(a.href);
+
+        status.innerText = "Done! 'tiles_data.js' downloaded.";
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    /*
+
+    Go to this site:
+    https://maputnik.github.io/editor/#13.36/45.02277/-123.98255
+
+    Run the snippet:
+
+    (async function downloadTilesAsZip() {
+  // 1. Dynamically load JSZip into the page if not present
+  if (!window.JSZip) {
+    console.log("Loading JSZip library...");
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  const zip = new JSZip();
+  const folder = zip.folder("tiles");
+
+  // 2. Get all loaded vector tile URLs from Performance entries
+  const resources = performance.getEntriesByType('resource');
+  const tileUrls = [...new Set(
+    resources
+      .map(r => r.name)
+      .filter(url => url.includes('.pbf') || url.match(/\/\d+\/\d+\/\d+/))
+  )];
+
+  if (tileUrls.length === 0) {
+    console.warn("No .pbf tile URLs found in network memory.");
+    return;
+  }
+
+  console.log(`Fetching ${tileUrls.length} vector tiles into ZIP...`);
+
+  // 3. Download each tile into the ZIP folder in memory
+  let downloadedCount = 0;
+  for (const url of tileUrls) {
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+
+      const match = url.match(/\/(\d+)\/(\d+)\/(\d+)\.pbf/);
+      const filename = match 
+        ? `${match[1]}_${match[2]}_${match[3]}.pbf`
+        : `tile_${downloadedCount}.pbf`;
+
+      folder.file(filename, arrayBuffer);
+      downloadedCount++;
+      console.log(`[${downloadedCount}/${tileUrls.length}] Added ${filename}`);
+    } catch (err) {
+      console.error(`Failed tile: ${url}`, err);
+    }
+  }
+
+  // 4. Generate and download the single ZIP file
+  console.log("Compressing tiles into map_tiles.zip...");
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(zipBlob);
+  link.download = 'map_tiles.zip';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+
+  console.log("Done! Downloaded map_tiles.zip containing all vector tiles.");
+})();
+
+*/
+  </script>
+</body>
+</html>

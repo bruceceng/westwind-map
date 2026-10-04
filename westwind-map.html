@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Track Editor & Consolidator</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet-Geoman CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+        #map { width: 100%; height: 100%; }
+        
+        #ui-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            max-width: 260px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #0078A8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: #005f85; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <strong>Track Processing</strong>
+        <button id="consolidate-btn">Consolidate Out-and-Back</button>
+        <button id="simplify-btn">Smooth / Simplify</button>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS Core -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet-Geoman JS -->
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    <!-- Turf.js -->
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <!-- Your Data File -->
+    <script src="filtered_data.js"></script>
+
+    <script>
+        const map = L.map('map').setView([44.9582, -124.0179], 10);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Geoman UI tools
+        map.pm.addControls({
+            position: 'topleft',
+            drawCircle: false, drawCircleMarker: false, drawPolygon: false,
+            drawRectangle: false, drawText: false, cutPolygon: false,
+            drawPolyline: true, editMode: true, dragMode: true, removalMode: true
+        });
+
+        const dataLayer = L.featureGroup().addTo(map);
+
+        // Load Data
+        if (typeof filteredGpxData !== 'undefined') {
+            if (filteredGpxData.tracks && filteredGpxData.tracks.length > 0) {
+                filteredGpxData.tracks.forEach(trackPath => {
+                    L.polyline(trackPath, { color: 'blue', weight: 4, opacity: 0.8 }).addTo(dataLayer);
+                });
+            }
+            if (filteredGpxData.waypoints && filteredGpxData.waypoints.length > 0) {
+                filteredGpxData.waypoints.forEach(wpt => {
+                    L.marker([wpt.lat, wpt.lon]).bindPopup(wpt.name || 'Waypoint').addTo(dataLayer);
+                });
+            }
+            if (dataLayer.getLayers().length > 0) {
+                map.fitBounds(dataLayer.getBounds());
+            }
+        }
+
+        // --- AUTOMATED OUT-AND-BACK CONSOLIDATION ---
+        document.getElementById('consolidate-btn').addEventListener('click', () => {
+            let processedCount = 0;
+
+            dataLayer.eachLayer((layer) => {
+                if (layer instanceof L.Polyline && !layer._url) {
+                    const latlngs = layer.getLatLngs();
+                    if (latlngs.length < 10) return; // Too short to be an out-and-back track
+
+                    // Convert to Turf coords [lon, lat]
+                    const coords = latlngs.map(ll => [ll.lng, ll.lat]);
+                    const line = turf.lineString(coords);
+                    const length = turf.length(line, {units: 'miles'});
+
+                    // Find the turnaround point (the point physically furthest from the start)
+                    const startPoint = coords[0];
+                    let maxDist = 0;
+                    let turnaroundIndex = 0;
+
+                    coords.forEach((pt, idx) => {
+                        const dist = turf.distance(startPoint, pt, {units: 'miles'});
+                        if (dist > maxDist) {
+                            maxDist = dist;
+                            turnaroundIndex = idx;
+                        }
+                    });
+
+                    // If the max distance happens near the very end, it's a loop/traverse, not an out-and-back
+                    if (turnaroundIndex < coords.length * 0.2 || turnaroundIndex > coords.length * 0.8) {
+                        return; 
+                    }
+
+                    // Split into Outbound (Leg 1) and Inbound (Leg 2)
+                    const leg1 = coords.slice(0, turnaroundIndex + 1);
+                    const leg2 = coords.slice(turnaroundIndex); // includes turnaround back to end
+
+                    // Create a single consolidated path by taking Leg 1 and matching Leg 2 points back to it
+                    const consolidatedCoords = [];
+                    const line1 = turf.lineString(leg1);
+
+                    leg1.forEach(pt => consolidatedCoords.push(pt)); // Keep outbound clean
+
+                    // For the return leg, project points onto Leg 1 to snap them onto the exact same centerline
+                    leg2.reverse().forEach(pt2 => {
+                        const ptFeature = turf.point(pt2);
+                        const snapped = turf.nearestPointOnLine(line1, ptFeature);
+                        // Only add if it maps cleanly
+                        const snapCoords = snapped.geometry.coordinates;
+                        // Avoid duplicate consecutive points
+                        const last = consolidatedCoords[consolidatedCoords.length - 1];
+                        if (snapCoords[0] !== last[0] || snapCoords[1] !== last[1]) {
+                            consolidatedCoords.push(snapCoords);
+                        }
+                    });
+
+                    // Update layer with clean single line [lat, lon]
+                    const newLatLngs = consolidatedCoords.map(c => [c[1], c[0]]);
+                    layer.setLatLngs(newLatLngs);
+                    processedCount++;
+                }
+            });
+
+            if (processedCount > 0) {
+                alert(`Successfully consolidated ${processedCount} out-and-back track(s) into single centerlines!`);
+            } else {
+                alert("No qualifying out-and-back tracks detected based on start/turnaround geometry.");
+            }
+        });
+
+        // --- SIMPLIFY / SMOOTHING ---
+        document.getElementById('simplify-btn').addEventListener('click', () => {
+            const tolerance = 0.0003; 
+            dataLayer.eachLayer((layer) => {
+                if (layer instanceof L.Polyline && !layer._url) {
+                    const coords = layer.getLatLngs().map(ll => [ll.lng, ll.lat]);
+                    const simplified = turf.simplify(turf.lineString(coords), { tolerance: tolerance, highQuality: true });
+                    layer.setLatLngs(simplified.geometry.coordinates.map(c => [c[1], c[0]]));
+                }
+            });
+            alert("Tracks smoothed.");
+        });
+    </script>
+</body>
+</html>

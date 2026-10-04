@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Track & Marker Editor</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet-Rotate CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-rotate@0.2.1/dist/leaflet-rotate-src.css" />
+    <!-- Leaflet-Geoman CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; background: #111; }
+        
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 6px;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            max-width: 280px;
+        }
+
+        button, select {
+            width: 100%;
+            margin-top: 6px;
+            padding: 8px;
+            background-color: #0078A8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85em;
+            box-sizing: border-box;
+        }
+
+        select {
+            background-color: #ffffff;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        button:hover { background-color: #005f85; }
+        
+        button#undo-btn { background-color: #d9534f; }
+        button#undo-btn:hover { background-color: #c9302c; }
+
+        button#split-mode-btn { background-color: #f0ad4e; color: #fff; }
+        button#split-mode-btn.active { background-color: #d9534f; animation: pulse 1.5s infinite; }
+
+        button#rotate-btn { background-color: #8e44ad; }
+        button#rotate-btn:hover { background-color: #732d91; }
+
+        .section-title {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #333;
+            margin-top: 8px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 2px;
+        }
+
+        /* Custom Map Icon & Label Styles */
+        .map-icon-container {
+            background: transparent;
+            border: none;
+        }
+        .map-icon-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .map-icon-symbol {
+            font-size: 22px;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+        }
+        .map-icon-label {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #222;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin-top: 2px;
+        }
+        .text-label-marker {
+            background: transparent;
+            border: none;
+        }
+        .text-label-inner {
+            font-weight: bold;
+            font-size: 14px;
+            color: #111;
+            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+            white-space: nowrap;
+            cursor: move;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <strong>Map & Track Editor</strong>
+        
+        <div class="section-title">Base Map Layer</div>
+        <select id="tile-select">
+            <option value="sat_nolabel">Satellite (No Labels)</option>
+            <option value="relief_nolabel">Shaded Relief (No Labels)</option>
+            <option value="osm_labels">OpenStreetMap (With Labels)</option>
+        </select>
+
+        <div class="section-title">Tools</div>
+        <button id="rotate-btn">Rotate Map 90° CCW</button>
+        <button id="split-mode-btn">Toggle Split Mode: OFF</button>
+        <button id="undo-btn">⎌ Undo (Ctrl+Z)</button>
+
+        <div class="section-title">Add Markers / Text</div>
+        <button onclick="addCustomMarker('cabin', 'Cabin')">+ Add Cabin Icon</button>
+        <button onclick="addCustomMarker('water', 'Water Spigot')">+ Add Water Spigot</button>
+        <button onclick="addCustomMarker('outhouse', 'Outhouse')">+ Add Outhouse</button>
+        <button onclick="addCustomMarker('steps', 'Steps')">+ Add Steps</button>
+        <button onclick="addCustomMarker('text', 'New Text Label')">+ Add Text Label</button>
+
+        <div class="section-title">Save Work</div>
+        <button id="export-btn" style="background-color: #27ae60;">Export to filtered_data.js</button>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS Core -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet-Rotate JS (Adds native map bearing & rotation math) -->
+    <script src="https://unpkg.com/leaflet-rotate@0.2.1/dist/leaflet-rotate-src.js"></script>
+    <!-- Leaflet-Geoman JS -->
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    <!-- Your Data File -->
+    <script src="data3.js"></script>
+
+    <script>
+        // Initialize Map with Leaflet-Rotate enabled
+        const map = L.map('map', { 
+            maxZoom: 22, 
+            maxNativeZoom: 19,
+            rotate: true,             // Enable native rotation engine
+            bearing: 0,              // Initial rotation in degrees
+            rotateControl: false     // Hide default canvas rotate widget
+        }).setView([44.9582, -124.0179], 15);
+
+        // --- FREE TILE LAYERS (NO API KEYS REQUIRED) ---
+        const tileLayers = {
+            sat_nolabel: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19, attribution: 'Tiles © Esri World Imagery'
+            }),
+            relief_nolabel: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 13, attribution: 'Tiles © Esri Shaded Relief'
+            }),
+            osm_labels: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap'
+            })
+        };
+
+        // Default to satellite without labels
+        let activeTileLayer = tileLayers.sat_nolabel.addTo(map);
+
+        document.getElementById('tile-select').addEventListener('change', (e) => {
+            map.removeLayer(activeTileLayer);
+            activeTileLayer = tileLayers[e.target.value];
+            activeTileLayer.addTo(map);
+        });
+
+        // Geoman UI controls
+        map.pm.removeControls();
+        map.pm.addControls({
+            position: 'topleft',
+            drawCircle: false, drawCircleMarker: false, drawPolygon: false,
+            drawRectangle: false, drawText: false, drawMarker: false,
+            drawPolyline: true, editMode: true, dragMode: true, removalMode: true,
+            cutPolygon: false
+        });
+
+        const dataLayer = L.featureGroup().addTo(map);
+
+        const colors = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45"];
+        let colorCounter = 0;
+        let isSplitModeActive = false;
+
+        // --- ICON FACTORY ---
+        function createCustomIcon(type, name) {
+            if (type === 'text') {
+                return L.divIcon({
+                    className: 'text-label-marker',
+                    html: `<div class="text-label-inner"><span>${name}</span></div>`,
+                    iconSize: [100, 20],
+                    iconAnchor: [50, 10]
+                });
+            }
+
+            let emoji = '📍';
+            if (type === 'cabin') emoji = '🏠';
+            if (type === 'water') emoji = '🚰';
+            if (type === 'outhouse') emoji = '🛖';
+            if (type === 'steps') emoji = '🪜';
+
+            return L.divIcon({
+                className: 'map-icon-container',
+                html: `<div class="map-icon-inner"><div class="map-icon-symbol">${emoji}</div><div class="map-icon-label">${name}</div></div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+        }
+
+        // --- HISTORY / UNDO SYSTEM ---
+        let undoStack = [];
+        let isInternalUpdate = false;
+
+        function saveState() {
+            if (isInternalUpdate) return;
+            
+            let currentState = { tracks: [], waypoints: [] };
+
+            dataLayer.eachLayer((layer) => {
+                if (map.hasLayer(layer)) {
+                    if (layer instanceof L.Polyline && !layer._url) {
+                        currentState.tracks.push({
+                            latlngs: layer.getLatLngs().map(ll => [ll.lat, ll.lng]),
+                            color: layer.options.color || colors[0]
+                        });
+                    } else if (layer instanceof L.Marker && !layer._url) {
+                        const ll = layer.getLatLng();
+                        currentState.waypoints.push({
+                            lat: ll.lat,
+                            lon: ll.lng,
+                            name: layer.waypointName || 'Waypoint',
+                            type: layer.waypointType || 'cabin'
+                        });
+                    }
+                }
+            });
+
+            undoStack.push(currentState);
+            if (undoStack.length > 30) undoStack.shift();
+        }
+
+        function performUndo() {
+            if (undoStack.length <= 1) {
+                alert("Nothing left to undo!");
+                return;
+            }
+
+            isInternalUpdate = true;
+            undoStack.pop(); 
+            let previousState = undoStack[undoStack.length - 1]; 
+
+            if (!previousState) {
+                dataLayer.clearLayers();
+                isInternalUpdate = false;
+                return;
+            }
+
+            dataLayer.clearLayers();
+            previousState.tracks.forEach(t => {
+                L.polyline(t.latlngs, { color: t.color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            });
+            previousState.waypoints.forEach(w => {
+                addWaypointToMap(w.lat, w.lon, w.name, w.type);
+            });
+
+            isInternalUpdate = false;
+        }
+
+        document.getElementById('undo-btn').addEventListener('click', performUndo);
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                performUndo();
+            }
+        });
+
+        // --- HELPER TO ADD WAYPOINT ---
+        function addWaypointToMap(lat, lon, name, type) {
+            // rotateWithView: false keeps marker text/icons upright automatically as map rotates
+            const marker = L.marker([lat, lon], {
+                icon: createCustomIcon(type, name),
+                draggable: true,
+                rotateWithView: false
+            });
+            marker.waypointName = name;
+            marker.waypointType = type;
+
+            marker.on('dblclick', () => {
+                const newName = prompt("Edit label/name:", marker.waypointName);
+                if (newName !== null && newName.trim() !== "") {
+                    marker.waypointName = newName.trim();
+                    marker.setIcon(createCustomIcon(marker.waypointType, marker.waypointName));
+                    saveState();
+                }
+            });
+
+            marker.on('dragend', () => { saveState(); });
+            dataLayer.addLayer(marker);
+            return marker;
+        }
+
+        window.addCustomMarker = function(type, defaultName) {
+            const center = map.getCenter();
+            addWaypointToMap(center.lat, center.lng, defaultName, type);
+            saveState();
+        };
+
+        // --- INITIAL DATA LOAD ---
+        if (typeof filteredGpxData !== 'undefined') {
+            if (filteredGpxData.tracks && filteredGpxData.tracks.length > 0) {
+                filteredGpxData.tracks.forEach(trackPath => {
+                    const color = colors[colorCounter++ % colors.length];
+                    L.polyline(trackPath, { color: color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                });
+            }
+            if (filteredGpxData.waypoints && filteredGpxData.waypoints.length > 0) {
+                filteredGpxData.waypoints.forEach(wpt => {
+                    addWaypointToMap(wpt.lat, wpt.lon, wpt.name || 'Waypoint', wpt.type || 'cabin');
+                });
+            }
+            if (dataLayer.getLayers().length > 0) {
+                map.fitBounds(dataLayer.getBounds());
+            }
+        }
+
+        setTimeout(saveState, 500);
+
+        // --- NATIVE MAP ROTATION LOGIC ---
+        let currentBearing = 0;
+        document.getElementById('rotate-btn').addEventListener('click', () => {
+            // Turn bearing 90 degrees counter-clockwise natively inside Leaflet
+            currentBearing = (currentBearing - 90) % 360;
+            map.setBearing(currentBearing);
+        });
+
+        // --- CUSTOM SPLIT MODE LOGIC ---
+        const splitBtn = document.getElementById('split-mode-btn');
+        splitBtn.addEventListener('click', () => {
+            isSplitModeActive = !isSplitModeActive;
+            if (isSplitModeActive) {
+                splitBtn.textContent = "Toggle Split Mode: ON (Click vertex)";
+                splitBtn.classList.add('active');
+                map.getContainer().style.cursor = 'crosshair';
+            } else {
+                splitBtn.textContent = "Toggle Split Mode: OFF";
+                splitBtn.classList.remove('active');
+                map.getContainer().style.cursor = '';
+            }
+        });
+
+        dataLayer.on('click', (e) => {
+            if (!isSplitModeActive) return;
+            const clickedLayer = e.layer;
+            
+            if (!(clickedLayer instanceof L.Polyline)) return;
+
+            const latlngs = clickedLayer.getLatLngs();
+            if (latlngs.length < 3) {
+                alert("This track is too short to split.");
+                return;
+            }
+
+            let closestIndex = 0;
+            let minDist = Infinity;
+            latlngs.forEach((ll, idx) => {
+                const dist = ll.distanceTo(e.latlng);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestIndex = idx;
+                }
+            });
+
+            if (closestIndex === 0 || closestIndex === latlngs.length - 1) {
+                alert("Please click an interior point of the track to split it.");
+                return;
+            }
+
+            const part1 = latlngs.slice(0, closestIndex + 1);
+            const part2 = latlngs.slice(closestIndex);
+
+            const color1 = clickedLayer.options.color || colors[colorCounter++ % colors.length];
+            const color2 = colors[colorCounter++ % colors.length];
+
+            dataLayer.removeLayer(clickedLayer);
+
+            L.polyline(part1, { color: color1, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            L.polyline(part2, { color: color2, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+
+            saveState();
+            
+            isSplitModeActive = false;
+            splitBtn.textContent = "Toggle Split Mode: OFF";
+            splitBtn.classList.remove('active');
+            map.getContainer().style.cursor = '';
+            
+            alert("Track successfully split into two segments!");
+        });
+
+        // --- GEOMAN EVENT LISTENERS ---
+        map.on('pm:create', (e) => {
+            if (e.layer instanceof L.Polyline) {
+                e.layer.setStyle({ color: colors[colorCounter++ % colors.length], weight: 4, opacity: 0.85 });
+                dataLayer.addLayer(e.layer);
+            }
+            saveState();
+        });
+
+        map.on('pm:edit', () => { saveState(); });
+        map.on('pm:dragend', () => { saveState(); });
+        
+        map.on('pm:remove', (e) => {
+            if (dataLayer.hasLayer(e.layer)) {
+                dataLayer.removeLayer(e.layer);
+            }
+            saveState();
+        });
+
+        // --- EXPORT LOGIC ---
+        document.getElementById('export-btn').addEventListener('click', () => {
+            let exportData = { tracks: [], waypoints: [] };
+
+            dataLayer.eachLayer((layer) => {
+                if (map.hasLayer(layer)) {
+                    if (layer instanceof L.Polyline && !layer._url) {
+                        const latlngs = layer.getLatLngs();
+                        if (Array.isArray(latlngs) && latlngs.length > 0) {
+                            if (Array.isArray(latlngs[0])) {
+                                latlngs.forEach(subArray => {
+                                    exportData.tracks.push(subArray.map(ll => [ll.lat, ll.lng]));
+                                });
+                            } else {
+                                exportData.tracks.push(latlngs.map(ll => [ll.lat, ll.lng]));
+                            }
+                        }
+                    } else if (layer instanceof L.Marker && !layer._url) {
+                        const latlng = layer.getLatLng();
+                        exportData.waypoints.push({ 
+                            lat: latlng.lat, 
+                            lon: latlng.lng, 
+                            name: layer.waypointName || 'Waypoint',
+                            type: layer.waypointType || 'cabin'
+                        });
+                    }
+                }
+            });
+
+            const jsContent = `const filteredGpxData = ${JSON.stringify(exportData, null, 2)};`;
+            const blob = new Blob([jsContent], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'filtered_data.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert("Successfully exported tracks and custom markers to filtered_data.js!");
+        });
+    </script>
+</body>
+</html>
