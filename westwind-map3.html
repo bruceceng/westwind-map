@@ -34,7 +34,7 @@
             overflow-y: auto;
         }
 
-        button, select, input {
+        button, select, input, textarea {
             width: 100%;
             margin-top: 6px;
             padding: 8px;
@@ -46,9 +46,10 @@
             font-weight: bold;
             font-size: 0.85em;
             box-sizing: border-box;
+            font-family: inherit;
         }
 
-        select, input[type="text"] {
+        select, input[type="text"], textarea {
             background-color: #ffffff;
             color: #333;
             border: 1px solid #ccc;
@@ -110,48 +111,54 @@
         .map-icon-container {
             background: transparent;
             border: none;
+            width: auto !important;
+            height: auto !important;
         }
         .map-icon-inner {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            transform: translate(-50%, -50%);
         }
         .map-icon-symbol {
             font-size: 22px;
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .map-icon-img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
         }
         .map-icon-label {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 1px 5px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            color: #222;
-            white-space: nowrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            margin-top: 2px;
-        }
-        .text-label-marker {
-            background: transparent;
-            border: none;
-        }
-        .text-label-inner {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             padding: 2px 6px;
             border-radius: 3px;
             font-size: 11px;
             font-weight: bold;
             color: #222;
-            white-space: nowrap;
+            white-space: pre-line;
+            text-align: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            cursor: move;
+            margin-top: 2px;
+            width: max-content;
         }
 
         .overlay-handle-icon {
             font-size: 18px;
             text-shadow: 0 0 3px #fff;
             cursor: grab;
+        }
+
+        .color-swatch {
+            transition: transform 0.1s ease;
+        }
+        .color-swatch:hover {
+            transform: scale(1.2);
         }
 
         @keyframes pulse {
@@ -271,35 +278,39 @@
         });
 
         const dataLayer = L.featureGroup().addTo(map);
-        const colors = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45"];
+        const colors = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#ffffff", "#000000"];
         let colorCounter = 0;
         let isSplitModeActive = false;
 
         // --- ICON FACTORY ---
         function createCustomIcon(type, name) {
-            if (type === 'text') {
-                return L.divIcon({
-                    className: 'text-label-marker',
-                    html: `<div class="text-label-inner"><span>${name || ''}</span></div>`,
-                    iconSize: [120, 24],
-                    iconAnchor: [60, 12]
-                });
+            const iconMap = {
+                cabin: '🏠',
+                water: '🚰',
+                outhouse: '🚻',
+                steps: 'steps.png', // Uses ladder.png image or path
+                camp: '⛺',
+                tree: '🌲',
+                pin: '📍'
+            };
+
+            const iconValue = iconMap[type] || '';
+            let symbolHtml = '';
+
+            if (iconValue) {
+                if (/\.(png|jpg|jpeg|svg|webp)$/i.test(iconValue) || iconValue.includes('/')) {
+                    symbolHtml = `<div class="map-icon-symbol"><img src="${iconValue}" class="map-icon-img" alt="${type}"></div>`;
+                } else {
+                    symbolHtml = `<div class="map-icon-symbol">${iconValue}</div>`;
+                }
             }
 
-            let emoji = '📍';
-            if (type === 'cabin') emoji = '🏠';
-            if (type === 'water') emoji = '🚰';
-            if (type === 'outhouse') emoji = '🛖';
-            if (type === 'steps') emoji = '🪜';
-            if (type === 'camp') emoji = '⛺';
-            if (type === 'tree') emoji = '🌲';
-            if (type === 'pin') emoji = '📍';
+            const formattedName = (name || '').replace(/\n/g, '<br>');
 
             return L.divIcon({
                 className: 'map-icon-container',
-                html: `<div class="map-icon-inner"><div class="map-icon-symbol">${emoji}</div><div class="map-icon-label">${name || ''}</div></div>`,
-                iconSize: [50, 45],
-                iconAnchor: [25, 22]
+                html: `<div class="map-icon-inner">${symbolHtml}<div class="map-icon-label">${formattedName}</div></div>`,
+                iconSize: null
             });
         }
 
@@ -309,14 +320,14 @@
             popupNode.innerHTML = `
                 <div style="font-weight:bold; margin-bottom:6px; font-size:12px;">Edit Marker</div>
                 <label style="font-size:11px; display:block;">Label Text:</label>
-                <input type="text" id="pop-name" value="${marker.waypointName || ''}" style="width:100%; margin-bottom:6px; padding:4px; box-sizing:border-box;" />
+                <textarea id="pop-name" style="width:100%; height:45px; margin-bottom:6px; padding:4px; box-sizing:border-box; resize:vertical;">${marker.waypointName || ''}</textarea>
                 
                 <label style="font-size:11px; display:block;">Icon Type:</label>
                 <select id="pop-type" style="width:100%; margin-bottom:8px; padding:4px; box-sizing:border-box;">
                     <option value="cabin" ${marker.waypointType === 'cabin' ? 'selected' : ''}>🏠 Cabin</option>
                     <option value="water" ${marker.waypointType === 'water' ? 'selected' : ''}>🚰 Water Spigot</option>
-                    <option value="outhouse" ${marker.waypointType === 'outhouse' ? 'selected' : ''}>🛖 Outhouse</option>
-                    <option value="steps" ${marker.waypointType === 'steps' ? 'selected' : ''}>🪜 Steps</option>
+                    <option value="outhouse" ${marker.waypointType === 'outhouse' ? 'selected' : ''}>🚻 Outhouse</option>
+                    <option value="steps" ${marker.waypointType === 'steps' ? 'selected' : ''}>🪜 Steps (PNG)</option>
                     <option value="camp" ${marker.waypointType === 'camp' ? 'selected' : ''}>⛺ Camp</option>
                     <option value="tree" ${marker.waypointType === 'tree' ? 'selected' : ''}>🌲 Tree / Landmark</option>
                     <option value="pin" ${marker.waypointType === 'pin' ? 'selected' : ''}>📍 Pin</option>
@@ -347,6 +358,55 @@
 
                 delBtn.onclick = () => {
                     dataLayer.removeLayer(marker);
+                    saveState();
+                };
+            });
+        }
+
+        // --- TRACK EDITING & COLOR PICKER ENGINE ---
+        function attachTrackPopup(polyline) {
+            polyline.on('click', (e) => {
+                if (isSplitModeActive) return;
+
+                const popupNode = document.createElement('div');
+                popupNode.style.padding = '4px';
+                const currentColor = polyline.options.color || colors[0];
+                
+                popupNode.innerHTML = `
+                    <div style="font-weight:bold; margin-bottom:6px; font-size:12px;">Edit Track</div>
+                    <label style="font-size:11px; display:block; margin-bottom:4px;">Track Color:</label>
+                    <input type="color" id="track-color-picker" value="${currentColor}" style="width:100%; height:32px; padding:0; cursor:pointer; border:1px solid #ccc; border-radius:3px; margin-bottom:6px;" />
+                    
+                    <div style="display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap;">
+                        ${colors.map(c => `<div class="color-swatch" data-color="${c}" style="background:${c}; width:18px; height:18px; border-radius:50%; cursor:pointer; border:1px solid #333;"></div>`).join('')}
+                    </div>
+
+                    <div style="display:flex; gap:4px;">
+                        <button id="track-save-btn" style="background:#27ae60; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Save</button>
+                        <button id="track-del-btn" style="background:#d9534f; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Delete</button>
+                    </div>
+                `;
+
+                const popup = L.popup().setLatLng(e.latlng).setContent(popupNode).openOn(map);
+
+                const colorPicker = popupNode.querySelector('#track-color-picker');
+                const swatches = popupNode.querySelectorAll('.color-swatch');
+                
+                swatches.forEach(swatch => {
+                    swatch.onclick = () => {
+                        colorPicker.value = swatch.getAttribute('data-color');
+                    };
+                });
+
+                popupNode.querySelector('#track-save-btn').onclick = () => {
+                    polyline.setStyle({ color: colorPicker.value });
+                    map.closePopup(popup);
+                    saveState();
+                };
+
+                popupNode.querySelector('#track-del-btn').onclick = () => {
+                    dataLayer.removeLayer(polyline);
+                    map.closePopup(popup);
                     saveState();
                 };
             });
@@ -414,7 +474,6 @@
             const currentOpacity = parseFloat(opacitySlider.value) / 100;
 
             if (!imageOverlay) {
-                // Render inside standard overlayPane so it rotates natively and stays above tiles
                 imageOverlay = L.imageOverlay(currentOverlaySource, overlayBounds, {
                     opacity: currentOpacity,
                     pane: 'overlayPane',
@@ -603,7 +662,8 @@
 
             dataLayer.clearLayers();
             previousState.tracks.forEach(t => {
-                L.polyline(t.latlngs, { color: t.color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                const polyline = L.polyline(t.latlngs, { color: t.color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                attachTrackPopup(polyline);
             });
             previousState.waypoints.forEach(w => {
                 addWaypointToMap(w.lat, w.lon, w.name, w.type);
@@ -637,9 +697,11 @@
             }
 
             if (filteredGpxData.tracks && filteredGpxData.tracks.length > 0) {
-                filteredGpxData.tracks.forEach(trackPath => {
-                    const color = colors[colorCounter++ % colors.length];
-                    L.polyline(trackPath, { color: color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                filteredGpxData.tracks.forEach(trackItem => {
+                    let path = Array.isArray(trackItem) ? trackItem : (trackItem.latlngs || []);
+                    let color = (!Array.isArray(trackItem) && trackItem.color) ? trackItem.color : colors[colorCounter++ % colors.length];
+                    const polyline = L.polyline(path, { color: color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                    attachTrackPopup(polyline);
                 });
             }
             if (filteredGpxData.waypoints && filteredGpxData.waypoints.length > 0) {
@@ -710,8 +772,10 @@
 
             dataLayer.removeLayer(clickedLayer);
 
-            L.polyline(part1, { color: color1, weight: 4, opacity: 0.85 }).addTo(dataLayer);
-            L.polyline(part2, { color: color2, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            const p1 = L.polyline(part1, { color: color1, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            const p2 = L.polyline(part2, { color: color2, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            attachTrackPopup(p1);
+            attachTrackPopup(p2);
 
             saveState();
             
@@ -728,6 +792,7 @@
             if (e.layer instanceof L.Polyline) {
                 e.layer.setStyle({ color: colors[colorCounter++ % colors.length], weight: 4, opacity: 0.85 });
                 dataLayer.addLayer(e.layer);
+                attachTrackPopup(e.layer);
             } else if (e.layer instanceof L.Marker) {
                 const ll = e.layer.getLatLng();
                 map.removeLayer(e.layer);
@@ -770,10 +835,16 @@
                         if (Array.isArray(latlngs) && latlngs.length > 0) {
                             if (Array.isArray(latlngs[0])) {
                                 latlngs.forEach(subArray => {
-                                    exportData.tracks.push(subArray.map(ll => [ll.lat, ll.lng]));
+                                    exportData.tracks.push({
+                                        latlngs: subArray.map(ll => [ll.lat, ll.lng]),
+                                        color: layer.options.color || colors[0]
+                                    });
                                 });
                             } else {
-                                exportData.tracks.push(latlngs.map(ll => [ll.lat, ll.lng]));
+                                exportData.tracks.push({
+                                    latlngs: latlngs.map(ll => [ll.lat, ll.lng]),
+                                    color: layer.options.color || colors[0]
+                                });
                             }
                         }
                     } else if (layer instanceof L.Marker && !layer._url) {
@@ -800,7 +871,7 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            alert("Successfully exported tracks, custom markers, map position, and overlay bounds to filtered_data.js!");
+            alert("Successfully exported tracks, custom markers, track colors, map position, and overlay bounds to filtered_data.js!");
         });
     </script>
 </body>
