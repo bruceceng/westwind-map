@@ -137,11 +137,14 @@
             border: none;
         }
         .text-label-inner {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
             font-weight: bold;
-            font-size: 14px;
-            color: #111;
-            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+            color: #222;
             white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             cursor: move;
         }
 
@@ -171,7 +174,7 @@
         </select>
 
         <div class="section-title">Image Overlay (Westwind-Map.png)</div>
-        <button id="toggle-overlay-btn" style="background-color: #2e7d32;">Show Overlay</button>
+        <button id="toggle-overlay-btn" style="background-color: #c62828;">Hide Overlay</button>
         <button id="fit-overlay-view-btn" style="background-color: #e67e22;">📍 Fit PNG to Current Screen</button>
         <button id="zoom-overlay-btn" style="background-color: #2980b9;">🔍 Zoom Map to PNG</button>
         <button id="toggle-handles-btn" style="background-color: #555;">Toggle Corner Handles</button>
@@ -182,9 +185,9 @@
         </div>
         
         <label style="font-size: 0.75em; font-weight: bold; color: #333; margin-top: 6px; display: block;">
-            Opacity: <span id="opacity-val">70%</span>
+            Opacity: <span id="opacity-val">100%</span>
         </label>
-        <input type="range" id="overlay-opacity" min="0" max="100" value="70" style="width: 100%; margin-top: 2px;">
+        <input type="range" id="overlay-opacity" min="0" max="100" value="100" style="width: 100%; margin-top: 2px;">
 
         <div class="nudge-grid">
             <div></div>
@@ -223,17 +226,16 @@
     <!-- Leaflet-Geoman JS -->
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
     <!-- Data File -->
-    <script src="data3.js"></script>
+    <script src="filtered_data.js"></script>
 
     <script>
-        // Set initial rotation bearing to 90deg so West is at the bottom
         let currentBearing = 270;
 
         const map = L.map('map', { 
             maxZoom: 22, 
             maxNativeZoom: 19,
             rotate: true,             
-            bearing: currentBearing, // 90° puts West on bottom
+            bearing: currentBearing,
             rotateControl: false     
         }).setView([45.03725084623786, -124.00293231010438], 17);
 
@@ -374,11 +376,14 @@
 
         // --- OVERLAY ENGINE ---
         let imageOverlay = null;
-        let overlayBounds = L.latLngBounds([44.954, -124.025], [44.962, -124.010]);
+        let overlayBounds = L.latLngBounds([
+            [45.022764559533066, -124.01427268981935],
+            [45.0472082783978, -123.97667884826662]
+        ]);
         let currentOverlaySource = './Westwind-Map.png';
         let handleNW = null;
         let handleSE = null;
-        let isOverlayVisible = false;
+        let isOverlayVisible = true;
         let areHandlesVisible = false;
 
         const toggleOverlayBtn = document.getElementById('toggle-overlay-btn');
@@ -391,21 +396,28 @@
         document.getElementById('overlay-file-input').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                currentOverlaySource = URL.createObjectURL(file);
-                if (imageOverlay) {
-                    imageOverlay.setUrl(currentOverlaySource);
-                }
-                if (!isOverlayVisible) {
-                    toggleOverlayBtn.click();
-                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    currentOverlaySource = event.target.result;
+                    if (imageOverlay) {
+                        imageOverlay.setUrl(currentOverlaySource);
+                    }
+                    if (!isOverlayVisible) {
+                        toggleOverlayBtn.click();
+                    }
+                };
+                reader.readAsDataURL(file);
             }
         });
 
         function createOrUpdateOverlay() {
+            const currentOpacity = parseFloat(opacitySlider.value) / 100;
+
             if (!imageOverlay) {
+                // Render inside standard overlayPane so it rotates natively and stays above tiles
                 imageOverlay = L.imageOverlay(currentOverlaySource, overlayBounds, {
-                    opacity: parseFloat(opacitySlider.value) / 100,
-                    zIndex: 200,
+                    opacity: currentOpacity,
+                    pane: 'overlayPane',
                     interactive: false
                 });
 
@@ -417,7 +429,14 @@
                 }
             } else {
                 imageOverlay.setBounds(overlayBounds);
+                imageOverlay.setOpacity(currentOpacity);
             }
+        }
+
+        // Auto-load and display overlay on startup
+        createOrUpdateOverlay();
+        if (imageOverlay) {
+            imageOverlay.addTo(map);
         }
 
         toggleOverlayBtn.addEventListener('click', () => {
@@ -603,10 +622,9 @@
 
         // --- INITIAL DATA LOAD & RESTORE STATE ---
         if (typeof filteredGpxData !== 'undefined') {
-            // Restore saved map position, zoom, bearing, and overlay bounds if available
             if (filteredGpxData.mapConfig) {
                 if (filteredGpxData.mapConfig.center) {
-                    map.setView(filteredGpxData.mapConfig.center, filteredGpxData.mapConfig.zoom || 15);
+                    map.setView(filteredGpxData.mapConfig.center, filteredGpxData.mapConfig.zoom || 17);
                 }
                 if (filteredGpxData.mapConfig.bearing !== undefined) {
                     currentBearing = filteredGpxData.mapConfig.bearing;
@@ -614,6 +632,7 @@
                 }
                 if (filteredGpxData.mapConfig.overlayBounds) {
                     overlayBounds = L.latLngBounds(filteredGpxData.mapConfig.overlayBounds);
+                    if (imageOverlay) imageOverlay.setBounds(overlayBounds);
                 }
             }
 
@@ -726,7 +745,7 @@
             saveState();
         });
 
-        // --- EXPORT LOGIC (INCLUDES MAP CONFIG & OVERLAY BOUNDS) ---
+        // --- EXPORT LOGIC ---
         document.getElementById('export-btn').addEventListener('click', () => {
             const mapCenter = map.getCenter();
             
