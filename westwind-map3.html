@@ -171,9 +171,14 @@
             width: 12px;
             height: 12px;
         }
-        /* Hide captions for cabins, water, outhouses, tents, steps, and detailsText when zoomed out */
+        /* Hide captions for scalable markers & details text when zoomed out */
         .zoom-far .zoom-scalable .map-icon-label,
         .zoom-far .details-text-label {
+            display: none !important;
+        }
+
+        /* Completely hide detail pins (icon + label) when zoomed out */
+        .zoom-far .details-pin-container {
             display: none !important;
         }
 
@@ -247,6 +252,7 @@
         <button onclick="addCustomMarker('water', 'Water Spigot')">+ Add Water Spigot</button>
         <button onclick="addCustomMarker('outhouse', 'Outhouse')">+ Add Outhouse</button>
         <button onclick="addCustomMarker('steps', 'Steps')">+ Add Steps</button>
+        <button onclick="addCustomMarker('detailsPin', 'Detail Pin')">+ Add Detail Pin</button>
         <button onclick="addCustomMarker('text', 'Permanent Text')">+ Add Text Label</button>
         <button onclick="addCustomMarker('detailsText', 'Detail Text')">+ Add Detail Text Label</button>
 
@@ -351,6 +357,7 @@
                 camp: '⛺',
                 tree: '🌲',
                 pin: '📍',
+                detailsPin: '📍',
                 text: '',
                 detailsText: ''
             };
@@ -372,13 +379,14 @@
                 ? `<div class="${labelClass}">${trimmedName.replace(/\n/g, '<br>')}</div>` 
                 : '';
 
-            // Types that hide text/scale down when zoomed out (< 18)
+            // Types that scale down label/symbol when zoomed out (< 18)
             const scalableTypes = ['cabin', 'water', 'outhouse', 'camp', 'steps', 'detailsText'];
             const scalableClass = scalableTypes.includes(type) ? 'zoom-scalable' : '';
+            const detailsPinClass = type === 'detailsPin' ? 'details-pin-container' : '';
             const positionClass = labelAbove ? 'label-above' : '';
 
             return L.divIcon({
-                className: `map-icon-container ${scalableClass}`,
+                className: `map-icon-container ${scalableClass} ${detailsPinClass}`.trim(),
                 html: `<div class="map-icon-inner ${positionClass}">${symbolHtml}${labelHtml}</div>`,
                 iconSize: null
             });
@@ -398,9 +406,10 @@
                     <option value="water" ${marker.waypointType === 'water' ? 'selected' : ''}>🚰 Water Spigot</option>
                     <option value="outhouse" ${marker.waypointType === 'outhouse' ? 'selected' : ''}>🚻 Outhouse</option>
                     <option value="steps" ${marker.waypointType === 'steps' ? 'selected' : ''}>🪜 Steps (PNG)</option>
+                    <option value="detailsPin" ${marker.waypointType === 'detailsPin' ? 'selected' : ''}>📌 Detail Pin (Auto-Hide on Zoom Out)</option>
                     <option value="camp" ${marker.waypointType === 'camp' ? 'selected' : ''}>⛺ Camp</option>
                     <option value="tree" ${marker.waypointType === 'tree' ? 'selected' : ''}>🌲 Tree / Landmark</option>
-                    <option value="pin" ${marker.waypointType === 'pin' ? 'selected' : ''}>📍 Pin</option>
+                    <option value="pin" ${marker.waypointType === 'pin' ? 'selected' : ''}>📍 Permanent Pin</option>
                     <option value="text" ${marker.waypointType === 'text' ? 'selected' : ''}>🔤 Permanent Text Label</option>
                     <option value="detailsText" ${marker.waypointType === 'detailsText' ? 'selected' : ''}>🔍 Detail Text (Auto-Hide on Zoom Out)</option>
                 </select>

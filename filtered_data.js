@@ -1,10 +1,10 @@
 const filteredGpxData = {
   "mapConfig": {
     "center": [
-      45.0374470171833,
-      -124.00307178497316
+      45.0378489189534,
+      -124.00321446624515
     ],
-    "zoom": 19,
+    "zoom": 18.75,
     "bearing": 270,
     "overlayBounds": [
       [
@@ -5839,6 +5839,15 @@ const filteredGpxData = {
         [
           45.03843688964844,
           -123.99898529052734
+        ]
+      ],
+      "color": "#4363d8"
+    },
+    {
+      "latlngs": [
+        [
+          45.03843688964844,
+          -123.99898529052734
         ],
         [
           45.038455963134766,
@@ -5953,7 +5962,7 @@ const filteredGpxData = {
           -124.00062561035156
         ]
       ],
-      "color": "#4363d8"
+      "color": "#f032e6"
     }
   ],
   "waypoints": [
@@ -5961,427 +5970,519 @@ const filteredGpxData = {
       "lat": 45.0383364,
       "lon": -124.00315443,
       "name": "Wilson Lodge",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.03810592,
       "lon": -124.00307766,
       "name": "Cascade head",
-      "type": "outhouse"
+      "type": "outhouse",
+      "labelAbove": false
     },
     {
-      "lat": 45.03790826787997,
-      "lon": -124.00323134575014,
+      "lat": 45.037906646728516,
+      "lon": -124.00322723388672,
       "name": "Maid meriam",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03768278,
       "lon": -124.00336219,
       "name": "Tent 1",
-      "type": "camp"
+      "type": "camp",
+      "labelAbove": false
     },
     {
       "lat": 45.03760834,
       "lon": -124.00324761,
       "name": "Hidel",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03744947,
       "lon": -124.00320676,
       "name": "Vis",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03719313,
       "lon": -124.00332287,
       "name": "Bungalow",
-      "type": "camp"
+      "type": "camp",
+      "labelAbove": false
     },
     {
       "lat": 45.03707965,
       "lon": -124.00357398,
       "name": "Pit toilet",
-      "type": "outhouse"
+      "type": "outhouse",
+      "labelAbove": false
     },
     {
       "lat": 45.03701511755666,
       "lon": -124.0036751481908,
       "name": "Tamoshanter",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
-      "lat": 45.03694929,
-      "lon": -124.00350323,
+      "lat": 45.03696506803292,
+      "lon": -124.00344103081011,
       "name": "Bagpipers,\nKilties",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": true
     },
     {
-      "lat": 45.03676507,
-      "lon": -124.00337223,
+      "lat": 45.03674252987682,
+      "lon": -124.00333076387341,
       "name": "Thistledown",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": true
     },
     {
       "lat": 45.036827087402344,
       "lon": -124.00358581542969,
       "name": "",
-      "type": "steps"
+      "type": "steps",
+      "labelAbove": false
     },
     {
       "lat": 45.03670402802343,
       "lon": -124.00357738137247,
       "name": "",
-      "type": "water"
+      "type": "water",
+      "labelAbove": false
     },
     {
-      "lat": 45.036859450023194,
-      "lon": -124.00466501712799,
+      "lat": 45.03684616088867,
+      "lon": -124.00460052490234,
       "name": "The point",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": true
     },
     {
       "lat": 45.03725456,
       "lon": -124.00365802,
       "name": "",
-      "type": "steps"
+      "type": "steps",
+      "labelAbove": false
     },
     {
       "lat": 45.03737164,
       "lon": -124.00385112,
       "name": "Wyeast",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.037750244140625,
       "lon": -124.00318145751953,
       "name": "Nottingham\nPalace",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03775368866206,
       "lon": -124.00302388154802,
-      "name": "Robin hood",
-      "type": "cabin"
+      "name": "Robin\nhood",
+      "type": "cabin",
+      "labelAbove": true
     },
     {
-      "lat": 45.037868077691115,
-      "lon": -124.00305498114294,
+      "lat": 45.03789117203748,
+      "lon": -124.00304204225537,
       "name": "Alan a Dale\n(Store)",
-      "type": "pin"
+      "type": "detailsPin",
+      "labelAbove": true
     },
     {
       "lat": 45.03773003,
       "lon": -124.00353063,
       "name": "Dormitory, mcgiver, art palace",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.0382648627189,
       "lon": -124.00404542684558,
       "name": "Trail to beach",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
       "lat": 45.03834648,
       "lon": -124.00366146,
       "name": "Sand equipment",
-      "type": "pin"
+      "type": "detailsPin",
+      "labelAbove": false
     },
     {
       "lat": 45.03853589585636,
       "lon": -124.00409370660783,
       "name": "Trail to beach",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
       "lat": 45.03875253,
       "lon": -124.00344516,
       "name": "Tent camping",
-      "type": "camp"
+      "type": "camp",
+      "labelAbove": false
     },
     {
       "lat": 45.03927074,
       "lon": -124.00291572,
       "name": "Camp fire",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03981996897376,
       "lon": -124.0033064782619,
       "name": "The Dunes:\n(Soho, \nSockeye, \nFry, \nRed, \nChinook)",
-      "type": "camp"
+      "type": "camp",
+      "labelAbove": false
     },
     {
       "lat": 45.039527893066406,
       "lon": -124.00182342529297,
       "name": "Tractor road",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.03877759,
       "lon": -124.0028515,
       "name": "The roost and health center",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03853495,
       "lon": -124.00289257,
       "name": "Trillium",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03838018,
       "lon": -124.00268023,
       "name": "Newskowin",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.0383833,
       "lon": -124.00219194,
       "name": "",
-      "type": "steps"
+      "type": "steps",
+      "labelAbove": false
     },
     {
       "lat": 45.03797925,
       "lon": -124.00213558,
       "name": "",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03787699,
       "lon": -124.00215192,
       "name": "",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03784428,
       "lon": -124.00224483,
       "name": "Pit toliet",
-      "type": "outhouse"
+      "type": "outhouse",
+      "labelAbove": false
     },
     {
       "lat": 45.03665288,
       "lon": -124.00233758,
       "name": "Old Baldy",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03886947334005,
       "lon": -124.00248706340791,
       "name": "Parking",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.038629541446,
       "lon": -124.00195922919266,
       "name": "Shop",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
       "lat": 45.03847664602236,
       "lon": -124.00274876974667,
       "name": "Firewood",
-      "type": "pin"
+      "type": "detailsPin",
+      "labelAbove": false
     },
     {
       "lat": 45.03808670037678,
       "lon": -124.00292158126832,
       "name": "Accessibility ramp",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
       "lat": 45.03682817611815,
       "lon": -124.0033681690693,
       "name": "",
-      "type": "water"
+      "type": "water",
+      "labelAbove": false
     },
     {
-      "lat": 45.03637138561755,
-      "lon": -124.00408029556274,
+      "lat": 45.03655160642191,
+      "lon": -124.00413876826366,
       "name": "Old Sandslide",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.0351238,
       "lon": -124.00507528,
       "name": "Viewpoint",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03336898718444,
       "lon": -124.00773346424104,
       "name": "Cove beach",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03139316,
       "lon": -124.00640571,
       "name": "Clearing (Fern Gully)",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03035619,
       "lon": -124.00528591,
       "name": "Gate",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.0281992,
       "lon": -124.00696737,
       "name": "High meadow",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.02796275650221,
       "lon": -124.00857567787172,
       "name": "Agate cover overlook",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.02831389,
       "lon": -124.0108056,
       "name": "God's Thumb",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.02809545411168,
       "lon": -124.00492787361145,
       "name": "Trail to Lincoln city",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.03044543,
       "lon": -124.00424215,
       "name": "Spring",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03340914,
       "lon": -124.0019458,
       "name": "The gorge",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03633848,
       "lon": -123.99772242,
       "name": "Ranch hill",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03683446,
       "lon": -123.99841582,
       "name": "Crazy tree",
-      "type": "tree"
+      "type": "tree",
+      "labelAbove": false
     },
     {
-      "lat": 45.03862707,
-      "lon": -123.99923324,
-      "name": "Old stables climbing gaga ball",
-      "type": "cabin"
-    },
-    {
-      "lat": 45.03891426,
-      "lon": -123.99962804,
-      "name": "Water spigot, pit toilet, stables (Tillicum), archery",
-      "type": "pin"
-    },
-    {
-      "lat": 45.03927399,
-      "lon": -124.00014931,
-      "name": "Tractor road",
-      "type": "text"
+      "lat": 45.038857561425004,
+      "lon": -123.99896578312196,
+      "name": "Old stables (Tillicum), \narchery,\nclimbing,\ngaga ball",
+      "type": "pin",
+      "labelAbove": true
     },
     {
       "lat": 45.03972944,
       "lon": -124.00066621,
       "name": "Disk golf",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.04023397,
       "lon": -123.99975744,
       "name": "Camp boundary",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.02468292072917,
       "lon": -123.98525896971755,
       "name": "Parking area",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
       "lat": 45.03175354003906,
       "lon": -124.00399017333984,
       "name": "The Lake",
-      "type": "pin"
+      "type": "pin",
+      "labelAbove": false
     },
     {
-      "lat": 45.035097660066036,
-      "lon": -124.00361359119417,
+      "lat": 45.03501868727114,
+      "lon": -124.0036296334686,
       "name": "Wysong Corridor",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.03065077093132,
       "lon": -124.00478839874268,
       "name": "Raindrop to Sea Trail",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
-      "lat": 45.0364875793457,
-      "lon": -124.0037612915039,
+      "lat": 45.03658289722457,
+      "lon": -124.00375265480486,
       "name": "Trail to High Meadow",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
       "lat": 45.03978869669048,
       "lon": -124.00300741195682,
-      "name": "Water Spigot",
-      "type": "water"
+      "name": "",
+      "type": "water",
+      "labelAbove": false
     },
     {
       "lat": 45.03965792145151,
       "lon": -124.00318443775178,
       "name": "Pit Toilet",
-      "type": "outhouse"
+      "type": "outhouse",
+      "labelAbove": false
     },
     {
       "lat": 45.03841648980717,
       "lon": -124.00082945823671,
       "name": "Car Road",
-      "type": "text"
+      "type": "text",
+      "labelAbove": false
     },
     {
       "lat": 45.037119755166785,
       "lon": -124.00281575348959,
       "name": "Old Glory Trail",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
       "lat": 45.03766972809572,
       "lon": -124.0027296315344,
       "name": "High Trail",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
-      "lat": 45.037923010263526,
-      "lon": -124.00197958434944,
+      "lat": 45.037938762500744,
+      "lon": -124.0019366722194,
       "name": "Alpine Cabins:\n(Uncle Bliss,\nKlickatat,\nTyee)",
-      "type": "text"
+      "type": "detailsText",
+      "labelAbove": false
     },
     {
-      "lat": 45.03689210089111,
-      "lon": -124.00350472913121,
+      "lat": 45.03690675193883,
+      "lon": -124.0034855909189,
       "name": "",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
     },
     {
       "lat": 45.03797063317779,
       "lon": -124.00224160712162,
       "name": "",
-      "type": "cabin"
+      "type": "cabin",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.039046891214234,
+      "lon": -123.99926561511415,
+      "name": "",
+      "type": "water",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.03871556367198,
+      "lon": -123.99951441187362,
+      "name": "",
+      "type": "outhouse",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.025454801396,
+      "lon": -124.01062470392978,
+      "name": "Lincoln CIty Beach",
+      "type": "text",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.042987681124416,
+      "lon": -123.99947370995882,
+      "name": "Salmon River",
+      "type": "text",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.041100763678934,
+      "lon": -124.00575291044734,
+      "name": "Westwind Beach",
+      "type": "text",
+      "labelAbove": false
     }
   ]
 };
