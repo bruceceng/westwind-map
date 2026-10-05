@@ -1,10 +1,10 @@
 const filteredGpxData = {
   "mapConfig": {
     "center": [
-      45.03750245667643,
-      -124.00339230895045
+      45.0374470171833,
+      -124.00307178497316
     ],
-    "zoom": 20,
+    "zoom": 19,
     "bearing": 270,
     "overlayBounds": [
       [
@@ -1682,7 +1682,7 @@ const filteredGpxData = {
           -124.00310516357422
         ],
         [
-          45.03793716430664,
+          45.03794860839844,
           -124.00318908691406
         ]
       ],
@@ -5970,8 +5970,8 @@ const filteredGpxData = {
       "type": "outhouse"
     },
     {
-      "lat": 45.03793078,
-      "lon": -124.00320112,
+      "lat": 45.03790826787997,
+      "lon": -124.00323134575014,
       "name": "Maid meriam",
       "type": "cabin"
     },
@@ -6014,7 +6014,7 @@ const filteredGpxData = {
     {
       "lat": 45.03694929,
       "lon": -124.00350323,
-      "name": "Bagpipers and kilties",
+      "name": "Bagpipers,\nKilties",
       "type": "cabin"
     },
     {
@@ -6024,8 +6024,8 @@ const filteredGpxData = {
       "type": "cabin"
     },
     {
-      "lat": 45.03672582503665,
-      "lon": -124.00361627340318,
+      "lat": 45.036827087402344,
+      "lon": -124.00358581542969,
       "name": "",
       "type": "steps"
     },
@@ -6054,20 +6054,20 @@ const filteredGpxData = {
       "type": "cabin"
     },
     {
-      "lat": 45.03778484,
-      "lon": -124.00319401,
+      "lat": 45.037750244140625,
+      "lon": -124.00318145751953,
       "name": "Nottingham\nPalace",
       "type": "cabin"
     },
     {
-      "lat": 45.03774441,
-      "lon": -124.00305055,
+      "lat": 45.03775368866206,
+      "lon": -124.00302388154802,
       "name": "Robin hood",
       "type": "cabin"
     },
     {
-      "lat": 45.03782825,
-      "lon": -124.00305567,
+      "lat": 45.037868077691115,
+      "lon": -124.00305498114294,
       "name": "Alan a Dale\n(Store)",
       "type": "pin"
     },
@@ -6080,7 +6080,7 @@ const filteredGpxData = {
     {
       "lat": 45.0382648627189,
       "lon": -124.00404542684558,
-      "name": "To beach",
+      "name": "Trail to beach",
       "type": "text"
     },
     {
@@ -6092,7 +6092,7 @@ const filteredGpxData = {
     {
       "lat": 45.03853589585636,
       "lon": -124.00409370660783,
-      "name": "To beach",
+      "name": "Trail to beach",
       "type": "text"
     },
     {
@@ -6146,13 +6146,13 @@ const filteredGpxData = {
     {
       "lat": 45.03797925,
       "lon": -124.00213558,
-      "name": "Uncle bliss, klickatat",
+      "name": "",
       "type": "cabin"
     },
     {
       "lat": 45.03787699,
       "lon": -124.00215192,
-      "name": "Tyee",
+      "name": "",
       "type": "cabin"
     },
     {
@@ -6180,9 +6180,9 @@ const filteredGpxData = {
       "type": "text"
     },
     {
-      "lat": 45.03846406,
-      "lon": -124.00272683,
-      "name": "Firewood and kegs",
+      "lat": 45.03847664602236,
+      "lon": -124.00274876974667,
+      "name": "Firewood",
       "type": "pin"
     },
     {
@@ -6352,6 +6352,36 @@ const filteredGpxData = {
       "lon": -124.00082945823671,
       "name": "Car Road",
       "type": "text"
+    },
+    {
+      "lat": 45.037119755166785,
+      "lon": -124.00281575348959,
+      "name": "Old Glory Trail",
+      "type": "text"
+    },
+    {
+      "lat": 45.03766972809572,
+      "lon": -124.0027296315344,
+      "name": "High Trail",
+      "type": "text"
+    },
+    {
+      "lat": 45.037923010263526,
+      "lon": -124.00197958434944,
+      "name": "Alpine Cabins:\n(Uncle Bliss,\nKlickatat,\nTyee)",
+      "type": "text"
+    },
+    {
+      "lat": 45.03689210089111,
+      "lon": -124.00350472913121,
+      "name": "",
+      "type": "cabin"
+    },
+    {
+      "lat": 45.03797063317779,
+      "lon": -124.00224160712162,
+      "name": "",
+      "type": "cabin"
     }
   ]
 };

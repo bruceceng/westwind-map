@@ -243,7 +243,11 @@
             maxNativeZoom: 19,
             rotate: true,             
             bearing: currentBearing,
-            rotateControl: false     
+            rotateControl: false,
+            // Fine-grained zoom controls
+            zoomSnap: 0.25,          // Allows fractional zoom levels (17.0, 17.25, 17.5, etc.)
+            zoomDelta: 0.25,         // Changes + / - button zoom step size to 0.25
+            wheelPxPerZoomLevel: 120 // Higher number = slower, smaller steps when scrolling mouse wheel (default is 60)     
         }).setView([45.03725084623786, -124.00293231010438], 17);
 
         // --- TILE LAYERS ---
@@ -282,13 +286,29 @@
         let colorCounter = 0;
         let isSplitModeActive = false;
 
+        // --- HELPER UTILITIES ---
+        function getPolylineLatLngs(polyline) {
+            const latlngs = polyline.getLatLngs();
+            if (!Array.isArray(latlngs) || latlngs.length === 0) return [];
+            if (Array.isArray(latlngs[0])) {
+                return latlngs.map(subArr => subArr.map(ll => [ll.lat, ll.lng]));
+            }
+            return latlngs.map(ll => [ll.lat, ll.lng]);
+        }
+
+        function getFlatPolylineLatLngs(polyline) {
+            const latlngs = polyline.getLatLngs();
+            if (!Array.isArray(latlngs) || latlngs.length === 0) return [];
+            return Array.isArray(latlngs[0]) ? latlngs.flat() : latlngs;
+        }
+
         // --- ICON FACTORY ---
         function createCustomIcon(type, name) {
             const iconMap = {
                 cabin: '🏠',
                 water: '🚰',
                 outhouse: '🚻',
-                steps: 'steps.png', // Uses ladder.png image or path
+                steps: 'steps.png',
                 camp: '⛺',
                 tree: '🌲',
                 pin: '📍'
@@ -305,11 +325,14 @@
                 }
             }
 
-            const formattedName = (name || '').replace(/\n/g, '<br>');
+            const trimmedName = (name || '').trim();
+            const labelHtml = trimmedName 
+                ? `<div class="map-icon-label">${trimmedName.replace(/\n/g, '<br>')}</div>` 
+                : '';
 
             return L.divIcon({
                 className: 'map-icon-container',
-                html: `<div class="map-icon-inner">${symbolHtml}<div class="map-icon-label">${formattedName}</div></div>`,
+                html: `<div class="map-icon-inner">${symbolHtml}${labelHtml}</div>`,
                 iconSize: null
             });
         }
@@ -625,7 +648,7 @@
                 if (map.hasLayer(layer)) {
                     if (layer instanceof L.Polyline && !layer._url) {
                         currentState.tracks.push({
-                            latlngs: layer.getLatLngs().map(ll => [ll.lat, ll.lng]),
+                            latlngs: getPolylineLatLngs(layer),
                             color: layer.options.color || colors[0]
                         });
                     } else if (layer instanceof L.Marker && !layer._url) {
@@ -743,7 +766,7 @@
             
             if (!(clickedLayer instanceof L.Polyline)) return;
 
-            const latlngs = clickedLayer.getLatLngs();
+            const latlngs = getFlatPolylineLatLngs(clickedLayer);
             if (latlngs.length < 3) {
                 alert("This track is too short to split.");
                 return;
@@ -831,18 +854,18 @@
             dataLayer.eachLayer((layer) => {
                 if (map.hasLayer(layer)) {
                     if (layer instanceof L.Polyline && !layer._url) {
-                        const latlngs = layer.getLatLngs();
-                        if (Array.isArray(latlngs) && latlngs.length > 0) {
-                            if (Array.isArray(latlngs[0])) {
-                                latlngs.forEach(subArray => {
+                        const coords = getPolylineLatLngs(layer);
+                        if (coords.length > 0) {
+                            if (Array.isArray(coords[0][0])) {
+                                coords.forEach(subArray => {
                                     exportData.tracks.push({
-                                        latlngs: subArray.map(ll => [ll.lat, ll.lng]),
+                                        latlngs: subArray,
                                         color: layer.options.color || colors[0]
                                     });
                                 });
                             } else {
                                 exportData.tracks.push({
-                                    latlngs: latlngs.map(ll => [ll.lat, ll.lng]),
+                                    latlngs: coords,
                                     color: layer.options.color || colors[0]
                                 });
                             }
