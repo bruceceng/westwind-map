@@ -1,8 +1,8 @@
 const filteredGpxData = {
   "mapConfig": {
     "center": [
-      45.0378489189534,
-      -124.00321446624515
+      45.03835831379823,
+      -124.00328144998808
     ],
     "zoom": 18.75,
     "bearing": 270,
@@ -6062,7 +6062,7 @@ const filteredGpxData = {
       "lon": -124.00460052490234,
       "name": "The point",
       "type": "pin",
-      "labelAbove": true
+      "labelAbove": false
     },
     {
       "lat": 45.03725456,
@@ -6214,8 +6214,8 @@ const filteredGpxData = {
     {
       "lat": 45.03886947334005,
       "lon": -124.00248706340791,
-      "name": "Parking",
-      "type": "text",
+      "name": "Limited\nParking",
+      "type": "detailsText",
       "labelAbove": false
     },
     {
@@ -6277,7 +6277,7 @@ const filteredGpxData = {
     {
       "lat": 45.03035619,
       "lon": -124.00528591,
-      "name": "Gate",
+      "name": "Gate\nCamp Boundary",
       "type": "pin",
       "labelAbove": false
     },
@@ -6310,11 +6310,11 @@ const filteredGpxData = {
       "labelAbove": false
     },
     {
-      "lat": 45.03044543,
-      "lon": -124.00424215,
+      "lat": 45.03044106139314,
+      "lon": -124.0040207172091,
       "name": "Spring",
       "type": "pin",
-      "labelAbove": false
+      "labelAbove": true
     },
     {
       "lat": 45.03340914,
@@ -6340,7 +6340,7 @@ const filteredGpxData = {
     {
       "lat": 45.038857561425004,
       "lon": -123.99896578312196,
-      "name": "Old stables (Tillicum), \narchery,\nclimbing,\ngaga ball",
+      "name": "Old stables (Tillicum), \narchery, climbing, gaga ball",
       "type": "pin",
       "labelAbove": true
     },
@@ -6464,24 +6464,38 @@ const filteredGpxData = {
       "labelAbove": false
     },
     {
-      "lat": 45.025454801396,
-      "lon": -124.01062470392978,
+      "lat": 45.025620591957214,
+      "lon": -124.01134645111239,
       "name": "Lincoln CIty Beach",
-      "type": "text",
+      "type": "plainText",
       "labelAbove": false
     },
     {
       "lat": 45.042987681124416,
       "lon": -123.99947370995882,
       "name": "Salmon River",
-      "type": "text",
+      "type": "plainText",
       "labelAbove": false
     },
     {
       "lat": 45.041100763678934,
       "lon": -124.00575291044734,
       "name": "Westwind Beach",
-      "type": "text",
+      "type": "plainText",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.0348530928981,
+      "lon": -124.0079722830338,
+      "name": "The Eye\n(Tidepools)",
+      "type": "pin",
+      "labelAbove": false
+    },
+    {
+      "lat": 45.033348449852824,
+      "lon": -123.99759716728408,
+      "name": "Estuary\n(Marsh)",
+      "type": "plainText",
       "labelAbove": false
     }
   ]

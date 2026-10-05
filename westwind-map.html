@@ -3,178 +3,1225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Track Editor & Consolidator</title>
+    <title>Manual Track & Marker Editor</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet-Rotate CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-rotate@0.2.1/dist/leaflet-rotate-src.css" />
     <!-- Leaflet-Geoman CSS -->
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
-        #map { width: 100%; height: 100%; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; background: #111; }
         
-        #ui-panel {
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- COLLAPSIBLE UI PANEL --- */
+        #toggle-panel-btn {
             position: absolute;
             top: 10px;
             right: 10px;
+            z-index: 1001;
+            width: auto;
+            padding: 8px 14px;
+            background: #0078A8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            font-weight: bold;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        #toggle-panel-btn:hover { background-color: #005f85; }
+
+        #ui-panel {
+            position: absolute;
+            top: 50px;
+            right: 10px;
             background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 6px;
             z-index: 1000;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            max-width: 260px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            max-width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
 
-        button {
+        #ui-panel.collapsed {
+            display: none;
+        }
+
+        button, select, input, textarea {
             width: 100%;
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 6px;
+            padding: 8px;
             background-color: #0078A8;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 0.85em;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        select, input[type="text"], textarea {
+            background-color: #ffffff;
+            color: #333;
+            border: 1px solid #ccc;
+            font-weight: normal;
         }
 
         button:hover { background-color: #005f85; }
+        
+        button#undo-btn { background-color: #d9534f; }
+        button#undo-btn:hover { background-color: #c9302c; }
+
+        button#split-mode-btn { background-color: #f0ad4e; color: #fff; }
+        button#split-mode-btn.active { background-color: #d9534f; animation: pulse 1.5s infinite; }
+
+        button#rotate-btn { background-color: #8e44ad; }
+        button#rotate-btn:hover { background-color: #732d91; }
+
+        .file-upload-wrapper {
+            margin-top: 6px;
+            position: relative;
+        }
+
+        .file-upload-btn {
+            background-color: #4a5568;
+            color: white;
+            text-align: center;
+            display: block;
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .file-upload-input {
+            display: none;
+        }
+
+        .section-title {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #333;
+            margin-top: 12px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 2px;
+        }
+
+        .nudge-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .nudge-grid button {
+            margin-top: 0;
+            padding: 6px;
+            font-size: 0.75em;
+        }
+
+        /* --- DRAGGABLE COMPASS & LEGEND WIDGET --- */
+        #compass-legend-widget {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            background: rgba(15, 23, 42, 0.88);
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+            min-width: 175px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            user-select: none;
+        }
+
+        .widget-header {
+            font-weight: bold;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 4px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .widget-header::after {
+            content: "⋮⋮";
+            font-size: 1.1em;
+            color: #64748b;
+        }
+
+        .compass-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .compass-dial {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+        }
+
+        .compass-needle {
+            width: 0;
+            height: 0;
+            position: absolute;
+            transition: transform 0.2s ease-out;
+        }
+
+        /* North Pointer (Red) */
+        .compass-needle::before {
+            content: '';
+            position: absolute;
+            top: -13px;
+            left: -3px;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            border-bottom: 13px solid #ef4444;
+        }
+
+        /* South Pointer (White) */
+        .compass-needle::after {
+            content: '';
+            position: absolute;
+            top: 0px;
+            left: -3px;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            border-top: 13px solid #f8fafc;
+        }
+
+        .legend-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78em;
+            color: #e2e8f0;
+        }
+
+        .legend-color-bar {
+            width: 18px;
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        /* --- MARKER STYLING & BASE ANIMATIONS --- */
+        .map-icon-container {
+            background: transparent;
+            border: none;
+            width: auto !important;
+            height: auto !important;
+        }
+        .map-icon-inner {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, -50%);
+            transition: all 0.15s ease-out;
+            position: relative;
+        }
+
+        /* Absolutely position label when symbol is present to anchor symbol precisely to GPS coords */
+        .map-icon-inner.has-symbol .map-icon-label {
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            margin-top: 2px;
+        }
+
+        /* Label Position Above Icon */
+        .map-icon-inner.has-symbol.label-above .map-icon-label {
+            top: auto;
+            bottom: 100%;
+            margin-top: 0;
+            margin-bottom: 2px;
+        }
+
+        .map-icon-symbol {
+            font-size: 22px;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: font-size 0.15s ease-out;
+        }
+        .map-icon-img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+            transition: width 0.15s ease-out, height 0.15s ease-out;
+        }
+        .map-icon-label {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #222;
+            white-space: pre-line;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin-top: 2px;
+            width: max-content;
+            transition: font-size 0.15s ease-out, opacity 0.15s ease-out;
+        }
+
+        /* --- UNBOXED PLAIN TEXT STYLING --- */
+        .map-icon-label.plain-text-label {
+            background: transparent !important;
+            box-shadow: none !important;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 5px rgba(0,0,0,0.9);
+            padding: 0;
+            margin: 0;
+        }
+
+        /* --- DYNAMIC ZOOM SCALING (FAR ZOOM < 18) --- */
+        .zoom-far .zoom-scalable .map-icon-symbol {
+            font-size: 11px;
+        }
+        .zoom-far .zoom-scalable .map-icon-img {
+            width: 12px;
+            height: 12px;
+        }
+        /* Hide captions for scalable markers & details text when zoomed out */
+        .zoom-far .zoom-scalable .map-icon-label,
+        .zoom-far .details-text-label {
+            display: none !important;
+        }
+
+        /* Completely hide detail pins (icon + label) when zoomed out */
+        .zoom-far .details-pin-container {
+            display: none !important;
+        }
+
+        .overlay-handle-icon {
+            font-size: 18px;
+            text-shadow: 0 0 3px #fff;
+            cursor: grab;
+        }
+
+        .color-swatch {
+            transition: transform 0.1s ease;
+        }
+        .color-swatch:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
+    <!-- Panel Toggle Button -->
+    <button id="toggle-panel-btn">⚙️ Tools</button>
+
+    <!-- Main UI Control Panel -->
     <div id="ui-panel">
-        <strong>Track Processing</strong>
-        <button id="consolidate-btn">Consolidate Out-and-Back</button>
-        <button id="simplify-btn">Smooth / Simplify</button>
+        <strong>Map & Track Editor</strong>
+        
+        <div class="section-title">Base Map Layer</div>
+        <select id="tile-select">
+            <option value="sat_nolabel">Satellite (No Labels)</option>
+            <option value="relief_nolabel">Shaded Relief (No Labels)</option>
+            <option value="osm_labels">OpenStreetMap (With Labels)</option>
+        </select>
+
+        <div class="section-title">Image Overlay (Westwind-Map.png)</div>
+        <button id="toggle-overlay-btn" style="background-color: #c62828;">Hide Overlay</button>
+        <button id="fit-overlay-view-btn" style="background-color: #e67e22;">📍 Fit PNG to Current Screen</button>
+        <button id="zoom-overlay-btn" style="background-color: #2980b9;">🔍 Zoom Map to PNG</button>
+        <button id="toggle-handles-btn" style="background-color: #555;">Toggle Corner Handles</button>
+
+        <div class="file-upload-wrapper">
+            <label for="overlay-file-input" class="file-upload-btn">📁 Choose Local PNG File</label>
+            <input type="file" id="overlay-file-input" class="file-upload-input" accept="image/png, image/jpeg, image/webp">
+        </div>
+        
+        <label style="font-size: 0.75em; font-weight: bold; color: #333; margin-top: 6px; display: block;">
+            Opacity: <span id="opacity-val">100%</span>
+        </label>
+        <input type="range" id="overlay-opacity" min="0" max="100" value="100" style="width: 100%; margin-top: 2px;">
+
+        <div class="nudge-grid">
+            <div></div>
+            <button onclick="nudgeOverlay(0.0001, 0)">▲ N</button>
+            <div></div>
+            <button onclick="nudgeOverlay(0, -0.0001)">◀ W</button>
+            <button onclick="scaleOverlay(1.02)">🔍 +</button>
+            <button onclick="nudgeOverlay(0, 0.0001)">E ▶</button>
+            <div></div>
+            <button onclick="nudgeOverlay(-0.0001, 0)">▼ S</button>
+            <button onclick="scaleOverlay(0.98)">🔍 -</button>
+        </div>
+
+        <div class="section-title">Tools</div>
+        <button id="rotate-btn">Rotate Map (90° Steps)</button>
+        <button id="split-mode-btn">Toggle Split Mode: OFF</button>
+        <button id="undo-btn">⎌ Undo (Ctrl+Z)</button>
+
+        <div class="section-title">Add Markers / Text</div>
+        <button onclick="addCustomMarker('cabin', 'Cabin')">+ Add Cabin Icon</button>
+        <button onclick="addCustomMarker('water', 'Water Spigot')">+ Add Water Spigot</button>
+        <button onclick="addCustomMarker('outhouse', 'Outhouse')">+ Add Outhouse</button>
+        <button onclick="addCustomMarker('steps', 'Steps')">+ Add Steps</button>
+        <button onclick="addCustomMarker('detailsPin', 'Detail Pin')">+ Add Detail Pin</button>
+        <button onclick="addCustomMarker('text', 'Boxed Text')">+ Add Boxed Text</button>
+        <button onclick="addCustomMarker('plainText', 'Plain Text')">+ Add Plain Text (No Box)</button>
+        <button onclick="addCustomMarker('detailsText', 'Detail Text')">+ Add Detail Text Label</button>
+
+        <div class="section-title">Save Work</div>
+        <button id="export-btn" style="background-color: #27ae60;">Export to filtered_data.js</button>
+    </div>
+
+    <!-- Draggable Compass & Legend Widget -->
+    <div id="compass-legend-widget">
+        <div class="widget-header" id="widget-drag-handle">Map Legend</div>
+        
+        <div class="compass-section">
+            <div class="compass-dial">
+                <div class="compass-needle" id="compass-needle"></div>
+            </div>
+            <div style="font-size: 0.8em; font-weight: bold; color: #cbd5e1;">
+                Orientation: <span id="bearing-text">North</span>
+            </div>
+        </div>
+
+        <div class="legend-list">
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #911eb4;"></div>
+                <span>Unmaintained Trails</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #4363d8;"></div>
+                <span>Hiking Trails</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #f032e6;"></div>
+                <span>Camp Paths</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #3cb44b;"></div>
+                <span>Car Road</span>
+            </div>
+        </div>
     </div>
 
     <div id="map"></div>
 
     <!-- Leaflet JS Core -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet-Rotate JS -->
+    <script src="https://unpkg.com/leaflet-rotate@0.2.1/dist/leaflet-rotate-src.js"></script>
     <!-- Leaflet-Geoman JS -->
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
-    <!-- Turf.js -->
-    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-    <!-- Your Data File -->
+    <!-- Data File -->
     <script src="filtered_data.js"></script>
 
     <script>
-        const map = L.map('map').setView([44.9582, -124.0179], 10);
+        let currentBearing = 270;
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        const map = L.map('map', { 
+            maxZoom: 22, 
+            maxNativeZoom: 19,
+            rotate: true,             
+            bearing: currentBearing,
+            rotateControl: false,
+            zoomSnap: 0.25,
+            zoomDelta: 0.25,
+            wheelPxPerZoomLevel: 120
+        }).setView([45.03725084623786, -124.00293231010438], 17);
 
-        // Geoman UI tools
+        // --- COLLAPSIBLE UI PANEL ---
+        const togglePanelBtn = document.getElementById('toggle-panel-btn');
+        const uiPanel = document.getElementById('ui-panel');
+
+        togglePanelBtn.addEventListener('click', () => {
+            uiPanel.classList.toggle('collapsed');
+        });
+
+        // --- COMPASS & BEARING ENGINE ---
+        function updateCompass() {
+            const needle = document.getElementById('compass-needle');
+            const bearingText = document.getElementById('bearing-text');
+            
+            // Rotate needle opposite to map bearing to keep pointing to true North
+            needle.style.transform = `rotate(${-currentBearing}deg)`;
+
+            const normalized = (currentBearing % 360 + 360) % 360;
+            if (normalized === 0) bearingText.textContent = "North (0°)";
+            else if (normalized === 90) bearingText.textContent = "East (90°)";
+            else if (normalized === 180) bearingText.textContent = "South (180°)";
+            else if (normalized === 270) bearingText.textContent = "West (270°)";
+            else bearingText.textContent = `${Math.round(normalized)}°`;
+        }
+
+        updateCompass();
+
+        // --- DRAGGABLE WIDGET ENGINE ---
+        function makeDraggable(element, handle) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            handle.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+                element.style.bottom = 'auto';
+                element.style.right = 'auto';
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        makeDraggable(document.getElementById('compass-legend-widget'), document.getElementById('widget-drag-handle'));
+
+        // --- ZOOM SCALING EVENT HANDLER ---
+        function updateZoomClasses() {
+            const currentZoom = map.getZoom();
+            const container = map.getContainer();
+            
+            container.classList.toggle('zoom-far', currentZoom < 18);
+        }
+
+        map.on('zoom zoomend', updateZoomClasses);
+
+        // --- TILE LAYERS ---
+        const tileLayers = {
+            sat_nolabel: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19, attribution: 'Tiles © Esri World Imagery'
+            }),
+            relief_nolabel: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 13, attribution: 'Tiles © Esri Shaded Relief'
+            }),
+            osm_labels: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap'
+            })
+        };
+
+        let activeTileLayer = tileLayers.sat_nolabel.addTo(map);
+
+        document.getElementById('tile-select').addEventListener('change', (e) => {
+            map.removeLayer(activeTileLayer);
+            activeTileLayer = tileLayers[e.target.value];
+            activeTileLayer.addTo(map);
+        });
+
+        // Geoman Controls
+        map.pm.removeControls();
         map.pm.addControls({
             position: 'topleft',
             drawCircle: false, drawCircleMarker: false, drawPolygon: false,
-            drawRectangle: false, drawText: false, cutPolygon: false,
-            drawPolyline: true, editMode: true, dragMode: true, removalMode: true
+            drawRectangle: false, drawText: false, drawMarker: false,
+            drawPolyline: true, editMode: true, dragMode: true, removalMode: true,
+            cutPolygon: false
         });
 
         const dataLayer = L.featureGroup().addTo(map);
+        const colors = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#ffffff", "#000000"];
+        let colorCounter = 0;
+        let isSplitModeActive = false;
 
-        // Load Data
+        // --- HELPER UTILITIES ---
+        function getPolylineLatLngs(polyline) {
+            const latlngs = polyline.getLatLngs();
+            if (!Array.isArray(latlngs) || latlngs.length === 0) return [];
+            if (Array.isArray(latlngs[0])) {
+                return latlngs.map(subArr => subArr.map(ll => [ll.lat, ll.lng]));
+            }
+            return latlngs.map(ll => [ll.lat, ll.lng]);
+        }
+
+        function getFlatPolylineLatLngs(polyline) {
+            const latlngs = polyline.getLatLngs();
+            if (!Array.isArray(latlngs) || latlngs.length === 0) return [];
+            return Array.isArray(latlngs[0]) ? latlngs.flat() : latlngs;
+        }
+
+        // --- ICON FACTORY ---
+        function createCustomIcon(type, name, labelAbove = false) {
+            const iconMap = {
+                cabin: '🏠',
+                water: '🚰',
+                outhouse: '🚻',
+                steps: 'steps.png',
+                camp: '⛺',
+                tree: '🌲',
+                pin: '📍',
+                detailsPin: '📌',
+                text: '',
+                plainText: '',
+                detailsText: ''
+            };
+
+            const iconValue = iconMap[type] || '';
+            let symbolHtml = '';
+
+            if (iconValue) {
+                if (/\.(png|jpg|jpeg|svg|webp)$/i.test(iconValue) || iconValue.includes('/')) {
+                    symbolHtml = `<div class="map-icon-symbol"><img src="${iconValue}" class="map-icon-img" alt="${type}"></div>`;
+                } else {
+                    symbolHtml = `<div class="map-icon-symbol">${iconValue}</div>`;
+                }
+            }
+
+            const trimmedName = (name || '').trim();
+            let labelClass = 'map-icon-label';
+            if (type === 'detailsText') labelClass += ' details-text-label';
+            if (type === 'plainText') labelClass += ' plain-text-label';
+
+            const labelHtml = trimmedName 
+                ? `<div class="${labelClass}">${trimmedName.replace(/\n/g, '<br>')}</div>` 
+                : '';
+
+            // Types that scale down label/symbol when zoomed out (< 18)
+            const scalableTypes = ['cabin', 'water', 'outhouse', 'camp', 'steps', 'detailsText'];
+            const scalableClass = scalableTypes.includes(type) ? 'zoom-scalable' : '';
+            const detailsPinClass = type === 'detailsPin' ? 'details-pin-container' : '';
+            const positionClass = labelAbove ? 'label-above' : '';
+            const hasSymbolClass = symbolHtml ? 'has-symbol' : '';
+
+            return L.divIcon({
+                className: `map-icon-container ${scalableClass} ${detailsPinClass}`.trim(),
+                html: `<div class="map-icon-inner ${positionClass} ${hasSymbolClass}">${symbolHtml}${labelHtml}</div>`,
+                iconSize: null
+            });
+        }
+
+        function attachMarkerPopup(marker) {
+            const popupNode = document.createElement('div');
+            popupNode.style.padding = '4px';
+            popupNode.innerHTML = `
+                <div style="font-weight:bold; margin-bottom:6px; font-size:12px;">Edit Marker</div>
+                <label style="font-size:11px; display:block;">Label Text:</label>
+                <textarea id="pop-name" style="width:100%; height:45px; margin-bottom:6px; padding:4px; box-sizing:border-box; resize:vertical;">${marker.waypointName || ''}</textarea>
+                
+                <label style="font-size:11px; display:block;">Icon Type:</label>
+                <select id="pop-type" style="width:100%; margin-bottom:6px; padding:4px; box-sizing:border-box;">
+                    <option value="cabin" ${marker.waypointType === 'cabin' ? 'selected' : ''}>🏠 Cabin</option>
+                    <option value="water" ${marker.waypointType === 'water' ? 'selected' : ''}>🚰 Water Spigot</option>
+                    <option value="outhouse" ${marker.waypointType === 'outhouse' ? 'selected' : ''}>🚻 Outhouse</option>
+                    <option value="steps" ${marker.waypointType === 'steps' ? 'selected' : ''}>🪜 Steps (PNG)</option>
+                    <option value="detailsPin" ${marker.waypointType === 'detailsPin' ? 'selected' : ''}>📌 Detail Pin (Auto-Hide on Zoom Out)</option>
+                    <option value="camp" ${marker.waypointType === 'camp' ? 'selected' : ''}>⛺ Camp</option>
+                    <option value="tree" ${marker.waypointType === 'tree' ? 'selected' : ''}>🌲 Tree / Landmark</option>
+                    <option value="pin" ${marker.waypointType === 'pin' ? 'selected' : ''}>📍 Permanent Pin</option>
+                    <option value="text" ${marker.waypointType === 'text' ? 'selected' : ''}>🔤 Boxed Text Label</option>
+                    <option value="plainText" ${marker.waypointType === 'plainText' ? 'selected' : ''}>💬 Plain Text (No Box, All Zooms)</option>
+                    <option value="detailsText" ${marker.waypointType === 'detailsText' ? 'selected' : ''}>🔍 Detail Text (Auto-Hide on Zoom Out)</option>
+                </select>
+
+                <label style="font-size:11px; display:flex; align-items:center; gap:6px; margin-bottom:8px; cursor:pointer;">
+                    <input type="checkbox" id="pop-label-above" ${marker.labelAbove ? 'checked' : ''} style="width:auto; margin:0;">
+                    Place Label Above Icon
+                </label>
+
+                <div style="display:flex; gap:4px;">
+                    <button id="pop-save" style="background:#27ae60; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Save</button>
+                    <button id="pop-del" style="background:#d9534f; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Delete</button>
+                </div>
+            `;
+
+            marker.bindPopup(popupNode);
+
+            marker.on('popupopen', () => {
+                const nameInput = popupNode.querySelector('#pop-name');
+                const typeSelect = popupNode.querySelector('#pop-type');
+                const labelAboveCheckbox = popupNode.querySelector('#pop-label-above');
+                const saveBtn = popupNode.querySelector('#pop-save');
+                const delBtn = popupNode.querySelector('#pop-del');
+
+                saveBtn.onclick = () => {
+                    marker.waypointName = nameInput.value.trim();
+                    marker.waypointType = typeSelect.value;
+                    marker.labelAbove = labelAboveCheckbox.checked;
+                    marker.setIcon(createCustomIcon(marker.waypointType, marker.waypointName, marker.labelAbove));
+                    marker.closePopup();
+                    saveState();
+                };
+
+                delBtn.onclick = () => {
+                    dataLayer.removeLayer(marker);
+                    saveState();
+                };
+            });
+        }
+
+        // --- TRACK EDITING & COLOR PICKER ENGINE ---
+        function attachTrackPopup(polyline) {
+            polyline.on('click', (e) => {
+                if (isSplitModeActive) return;
+
+                const popupNode = document.createElement('div');
+                popupNode.style.padding = '4px';
+                const currentColor = polyline.options.color || colors[0];
+                
+                popupNode.innerHTML = `
+                    <div style="font-weight:bold; margin-bottom:6px; font-size:12px;">Edit Track</div>
+                    <label style="font-size:11px; display:block; margin-bottom:4px;">Track Color:</label>
+                    <input type="color" id="track-color-picker" value="${currentColor}" style="width:100%; height:32px; padding:0; cursor:pointer; border:1px solid #ccc; border-radius:3px; margin-bottom:6px;" />
+                    
+                    <div style="display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap;">
+                        ${colors.map(c => `<div class="color-swatch" data-color="${c}" style="background:${c}; width:18px; height:18px; border-radius:50%; cursor:pointer; border:1px solid #333;"></div>`).join('')}
+                    </div>
+
+                    <div style="display:flex; gap:4px;">
+                        <button id="track-save-btn" style="background:#27ae60; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Save</button>
+                        <button id="track-del-btn" style="background:#d9534f; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Delete</button>
+                    </div>
+                `;
+
+                const popup = L.popup().setLatLng(e.latlng).setContent(popupNode).openOn(map);
+
+                const colorPicker = popupNode.querySelector('#track-color-picker');
+                const swatches = popupNode.querySelectorAll('.color-swatch');
+                
+                swatches.forEach(swatch => {
+                    swatch.onclick = () => {
+                        colorPicker.value = swatch.getAttribute('data-color');
+                    };
+                });
+
+                popupNode.querySelector('#track-save-btn').onclick = () => {
+                    polyline.setStyle({ color: colorPicker.value });
+                    map.closePopup(popup);
+                    saveState();
+                };
+
+                popupNode.querySelector('#track-del-btn').onclick = () => {
+                    dataLayer.removeLayer(polyline);
+                    map.closePopup(popup);
+                    saveState();
+                };
+            });
+        }
+
+        function addWaypointToMap(lat, lon, name, type, labelAbove = false) {
+            const marker = L.marker([lat, lon], {
+                icon: createCustomIcon(type, name, labelAbove),
+                draggable: true,
+                rotateWithView: false
+            });
+            marker.waypointName = name || '';
+            marker.waypointType = type || 'cabin';
+            marker.labelAbove = !!labelAbove;
+
+            attachMarkerPopup(marker);
+            marker.on('dragend', () => { saveState(); });
+            
+            dataLayer.addLayer(marker);
+            return marker;
+        }
+
+        window.addCustomMarker = function(type, defaultName) {
+            const center = map.getCenter();
+            addWaypointToMap(center.lat, center.lng, defaultName, type, false);
+            saveState();
+        };
+
+        // --- OVERLAY ENGINE ---
+        let imageOverlay = null;
+        let overlayBounds = L.latLngBounds([
+            [45.022764559533066, -124.01427268981935],
+            [45.0472082783978, -123.97667884826662]
+        ]);
+        let currentOverlaySource = './Westwind-Map.png';
+        let handleNW = null;
+        let handleSE = null;
+        let isOverlayVisible = true;
+        let areHandlesVisible = false;
+
+        const toggleOverlayBtn = document.getElementById('toggle-overlay-btn');
+        const fitOverlayViewBtn = document.getElementById('fit-overlay-view-btn');
+        const zoomOverlayBtn = document.getElementById('zoom-overlay-btn');
+        const toggleHandlesBtn = document.getElementById('toggle-handles-btn');
+        const opacitySlider = document.getElementById('overlay-opacity');
+        const opacityVal = document.getElementById('opacity-val');
+
+        document.getElementById('overlay-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    currentOverlaySource = event.target.result;
+                    if (imageOverlay) {
+                        imageOverlay.setUrl(currentOverlaySource);
+                    }
+                    if (!isOverlayVisible) {
+                        toggleOverlayBtn.click();
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function createOrUpdateOverlay() {
+            const currentOpacity = parseFloat(opacitySlider.value) / 100;
+
+            if (!imageOverlay) {
+                imageOverlay = L.imageOverlay(currentOverlaySource, overlayBounds, {
+                    opacity: currentOpacity,
+                    pane: 'overlayPane',
+                    interactive: false
+                });
+
+                const imgElement = imageOverlay.getElement();
+                if (imgElement) {
+                    imgElement.onerror = () => {
+                        alert("Could not load './Westwind-Map.png'. Ensure the image is in the same folder as this HTML file, or click '📁 Choose Local PNG File'.");
+                    };
+                }
+            } else {
+                imageOverlay.setBounds(overlayBounds);
+                imageOverlay.setOpacity(currentOpacity);
+            }
+        }
+
+        createOrUpdateOverlay();
+        if (imageOverlay) {
+            imageOverlay.addTo(map);
+        }
+
+        toggleOverlayBtn.addEventListener('click', () => {
+            isOverlayVisible = !isOverlayVisible;
+            if (isOverlayVisible) {
+                createOrUpdateOverlay();
+                imageOverlay.addTo(map);
+                toggleOverlayBtn.textContent = "Hide Overlay";
+                toggleOverlayBtn.style.backgroundColor = "#c62828";
+            } else {
+                if (imageOverlay) map.removeLayer(imageOverlay);
+                toggleOverlayBtn.textContent = "Show Overlay";
+                toggleOverlayBtn.style.backgroundColor = "#2e7d32";
+            }
+        });
+
+        fitOverlayViewBtn.addEventListener('click', () => {
+            const screenBounds = map.getBounds();
+            const center = screenBounds.getCenter();
+            const latSpan = (screenBounds.getNorth() - screenBounds.getSouth()) * 0.3;
+            const lngSpan = (screenBounds.getEast() - screenBounds.getWest()) * 0.3;
+
+            overlayBounds = L.latLngBounds(
+                [center.lat - latSpan, center.lng - lngSpan],
+                [center.lat + latSpan, center.lng + lngSpan]
+            );
+
+            createOrUpdateOverlay();
+            if (!isOverlayVisible) {
+                toggleOverlayBtn.click();
+            } else {
+                imageOverlay.setBounds(overlayBounds);
+            }
+
+            if (handleNW) handleNW.setLatLng(overlayBounds.getNorthWest());
+            if (handleSE) handleSE.setLatLng(overlayBounds.getSouthEast());
+        });
+
+        zoomOverlayBtn.addEventListener('click', () => {
+            if (overlayBounds) {
+                map.fitBounds(overlayBounds);
+            }
+        });
+
+        opacitySlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            opacityVal.textContent = `${val}%`;
+            if (imageOverlay) {
+                imageOverlay.setOpacity(val / 100);
+            }
+        });
+
+        function updateOverlayFromHandles() {
+            if (!handleNW || !handleSE || !imageOverlay) return;
+            const nw = handleNW.getLatLng();
+            const se = handleSE.getLatLng();
+            overlayBounds = L.latLngBounds(nw, se);
+            imageOverlay.setBounds(overlayBounds);
+        }
+
+        toggleHandlesBtn.addEventListener('click', () => {
+            areHandlesVisible = !areHandlesVisible;
+            if (areHandlesVisible) {
+                if (!handleNW) {
+                    handleNW = L.marker(overlayBounds.getNorthWest(), {
+                        draggable: true,
+                        icon: L.divIcon({ className: 'overlay-handle-icon', html: '↖', iconSize: [20,20], iconAnchor: [10,10] })
+                    }).addTo(map);
+                    handleNW.on('drag', updateOverlayFromHandles);
+                }
+                if (!handleSE) {
+                    handleSE = L.marker(overlayBounds.getSouthEast(), {
+                        draggable: true,
+                        icon: L.divIcon({ className: 'overlay-handle-icon', html: '↘️', iconSize: [20,20], iconAnchor: [10,10] })
+                    }).addTo(map);
+                    handleSE.on('drag', updateOverlayFromHandles);
+                }
+                toggleHandlesBtn.style.backgroundColor = "#0078A8";
+            } else {
+                if (handleNW) { map.removeLayer(handleNW); handleNW = null; }
+                if (handleSE) { map.removeLayer(handleSE); handleSE = null; }
+                toggleHandlesBtn.style.backgroundColor = "#555";
+            }
+        });
+
+        window.nudgeOverlay = function(dLat, dLng) {
+            if (!imageOverlay) return;
+            const sw = overlayBounds.getSouthWest();
+            const ne = overlayBounds.getNorthEast();
+            overlayBounds = L.latLngBounds(
+                [sw.lat + dLat, sw.lng + dLng],
+                [ne.lat + dLat, ne.lng + dLng]
+            );
+            imageOverlay.setBounds(overlayBounds);
+            if (handleNW) handleNW.setLatLng(overlayBounds.getNorthWest());
+            if (handleSE) handleSE.setLatLng(overlayBounds.getSouthEast());
+        };
+
+        window.scaleOverlay = function(factor) {
+            if (!imageOverlay) return;
+            const center = overlayBounds.getCenter();
+            const sw = overlayBounds.getSouthWest();
+            const ne = overlayBounds.getNorthEast();
+
+            const latDiff = (ne.lat - sw.lat) * factor / 2;
+            const lngDiff = (ne.lng - sw.lng) * factor / 2;
+
+            overlayBounds = L.latLngBounds(
+                [center.lat - latDiff, center.lng - lngDiff],
+                [center.lat + latDiff, center.lng + lngDiff]
+            );
+            imageOverlay.setBounds(overlayBounds);
+            if (handleNW) handleNW.setLatLng(overlayBounds.getNorthWest());
+            if (handleSE) handleSE.setLatLng(overlayBounds.getSouthEast());
+        };
+
+        // --- HISTORY / UNDO SYSTEM ---
+        let undoStack = [];
+        let isInternalUpdate = false;
+
+        function saveState() {
+            if (isInternalUpdate) return;
+            
+            let currentState = { tracks: [], waypoints: [] };
+
+            dataLayer.eachLayer((layer) => {
+                if (map.hasLayer(layer)) {
+                    if (layer instanceof L.Polyline && !layer._url) {
+                        currentState.tracks.push({
+                            latlngs: getPolylineLatLngs(layer),
+                            color: layer.options.color || colors[0]
+                        });
+                    } else if (layer instanceof L.Marker && !layer._url) {
+                        const ll = layer.getLatLng();
+                        currentState.waypoints.push({
+                            lat: ll.lat,
+                            lon: ll.lng,
+                            name: layer.waypointName || '',
+                            type: layer.waypointType || 'cabin',
+                            labelAbove: !!layer.labelAbove
+                        });
+                    }
+                }
+            });
+
+            undoStack.push(currentState);
+            if (undoStack.length > 30) undoStack.shift();
+        }
+
+        function performUndo() {
+            if (undoStack.length <= 1) {
+                alert("Nothing left to undo!");
+                return;
+            }
+
+            isInternalUpdate = true;
+            undoStack.pop(); 
+            let previousState = undoStack[undoStack.length - 1]; 
+
+            if (!previousState) {
+                dataLayer.clearLayers();
+                isInternalUpdate = false;
+                return;
+            }
+
+            dataLayer.clearLayers();
+            previousState.tracks.forEach(t => {
+                const polyline = L.polyline(t.latlngs, { color: t.color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                attachTrackPopup(polyline);
+            });
+            previousState.waypoints.forEach(w => {
+                addWaypointToMap(w.lat, w.lon, w.name, w.type, w.labelAbove);
+            });
+
+            isInternalUpdate = false;
+        }
+
+        document.getElementById('undo-btn').addEventListener('click', performUndo);
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                performUndo();
+            }
+        });
+
+        // --- INITIAL DATA LOAD & RESTORE STATE ---
         if (typeof filteredGpxData !== 'undefined') {
+            if (filteredGpxData.mapConfig) {
+                if (filteredGpxData.mapConfig.center) {
+                    map.setView(filteredGpxData.mapConfig.center, filteredGpxData.mapConfig.zoom || 17);
+                }
+                if (filteredGpxData.mapConfig.bearing !== undefined) {
+                    currentBearing = filteredGpxData.mapConfig.bearing;
+                    map.setBearing(currentBearing);
+                    updateCompass();
+                }
+                if (filteredGpxData.mapConfig.overlayBounds) {
+                    overlayBounds = L.latLngBounds(filteredGpxData.mapConfig.overlayBounds);
+                    if (imageOverlay) imageOverlay.setBounds(overlayBounds);
+                }
+            }
+
             if (filteredGpxData.tracks && filteredGpxData.tracks.length > 0) {
-                filteredGpxData.tracks.forEach(trackPath => {
-                    L.polyline(trackPath, { color: 'blue', weight: 4, opacity: 0.8 }).addTo(dataLayer);
+                filteredGpxData.tracks.forEach(trackItem => {
+                    let path = Array.isArray(trackItem) ? trackItem : (trackItem.latlngs || []);
+                    let color = (!Array.isArray(trackItem) && trackItem.color) ? trackItem.color : colors[colorCounter++ % colors.length];
+                    const polyline = L.polyline(path, { color: color, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+                    attachTrackPopup(polyline);
                 });
             }
             if (filteredGpxData.waypoints && filteredGpxData.waypoints.length > 0) {
                 filteredGpxData.waypoints.forEach(wpt => {
-                    L.marker([wpt.lat, wpt.lon]).bindPopup(wpt.name || 'Waypoint').addTo(dataLayer);
+                    addWaypointToMap(wpt.lat, wpt.lon, wpt.name || '', wpt.type || 'cabin', wpt.labelAbove || false);
                 });
             }
-            if (dataLayer.getLayers().length > 0) {
+            if (!filteredGpxData.mapConfig && dataLayer.getLayers().length > 0) {
                 map.fitBounds(dataLayer.getBounds());
             }
         }
 
-        // --- AUTOMATED OUT-AND-BACK CONSOLIDATION ---
-        document.getElementById('consolidate-btn').addEventListener('click', () => {
-            let processedCount = 0;
+        // Trigger zoom styling setup after map load
+        updateZoomClasses();
+        setTimeout(saveState, 500);
 
-            dataLayer.eachLayer((layer) => {
-                if (layer instanceof L.Polyline && !layer._url) {
-                    const latlngs = layer.getLatLngs();
-                    if (latlngs.length < 10) return; // Too short to be an out-and-back track
+        // --- NATIVE MAP ROTATION LOGIC ---
+        document.getElementById('rotate-btn').addEventListener('click', () => {
+            currentBearing = (currentBearing - 90) % 360;
+            map.setBearing(currentBearing);
+            updateCompass();
+        });
 
-                    // Convert to Turf coords [lon, lat]
-                    const coords = latlngs.map(ll => [ll.lng, ll.lat]);
-                    const line = turf.lineString(coords);
-                    const length = turf.length(line, {units: 'miles'});
-
-                    // Find the turnaround point (the point physically furthest from the start)
-                    const startPoint = coords[0];
-                    let maxDist = 0;
-                    let turnaroundIndex = 0;
-
-                    coords.forEach((pt, idx) => {
-                        const dist = turf.distance(startPoint, pt, {units: 'miles'});
-                        if (dist > maxDist) {
-                            maxDist = dist;
-                            turnaroundIndex = idx;
-                        }
-                    });
-
-                    // If the max distance happens near the very end, it's a loop/traverse, not an out-and-back
-                    if (turnaroundIndex < coords.length * 0.2 || turnaroundIndex > coords.length * 0.8) {
-                        return; 
-                    }
-
-                    // Split into Outbound (Leg 1) and Inbound (Leg 2)
-                    const leg1 = coords.slice(0, turnaroundIndex + 1);
-                    const leg2 = coords.slice(turnaroundIndex); // includes turnaround back to end
-
-                    // Create a single consolidated path by taking Leg 1 and matching Leg 2 points back to it
-                    const consolidatedCoords = [];
-                    const line1 = turf.lineString(leg1);
-
-                    leg1.forEach(pt => consolidatedCoords.push(pt)); // Keep outbound clean
-
-                    // For the return leg, project points onto Leg 1 to snap them onto the exact same centerline
-                    leg2.reverse().forEach(pt2 => {
-                        const ptFeature = turf.point(pt2);
-                        const snapped = turf.nearestPointOnLine(line1, ptFeature);
-                        // Only add if it maps cleanly
-                        const snapCoords = snapped.geometry.coordinates;
-                        // Avoid duplicate consecutive points
-                        const last = consolidatedCoords[consolidatedCoords.length - 1];
-                        if (snapCoords[0] !== last[0] || snapCoords[1] !== last[1]) {
-                            consolidatedCoords.push(snapCoords);
-                        }
-                    });
-
-                    // Update layer with clean single line [lat, lon]
-                    const newLatLngs = consolidatedCoords.map(c => [c[1], c[0]]);
-                    layer.setLatLngs(newLatLngs);
-                    processedCount++;
-                }
-            });
-
-            if (processedCount > 0) {
-                alert(`Successfully consolidated ${processedCount} out-and-back track(s) into single centerlines!`);
+        // --- SPLIT MODE LOGIC ---
+        const splitBtn = document.getElementById('split-mode-btn');
+        splitBtn.addEventListener('click', () => {
+            isSplitModeActive = !isSplitModeActive;
+            if (isSplitModeActive) {
+                splitBtn.textContent = "Toggle Split Mode: ON";
+                splitBtn.classList.add('active');
+                map.getContainer().style.cursor = 'crosshair';
             } else {
-                alert("No qualifying out-and-back tracks detected based on start/turnaround geometry.");
+                splitBtn.textContent = "Toggle Split Mode: OFF";
+                splitBtn.classList.remove('active');
+                map.getContainer().style.cursor = '';
             }
         });
 
-        // --- SIMPLIFY / SMOOTHING ---
-        document.getElementById('simplify-btn').addEventListener('click', () => {
-            const tolerance = 0.0003; 
-            dataLayer.eachLayer((layer) => {
-                if (layer instanceof L.Polyline && !layer._url) {
-                    const coords = layer.getLatLngs().map(ll => [ll.lng, ll.lat]);
-                    const simplified = turf.simplify(turf.lineString(coords), { tolerance: tolerance, highQuality: true });
-                    layer.setLatLngs(simplified.geometry.coordinates.map(c => [c[1], c[0]]));
+        dataLayer.on('click', (e) => {
+            if (!isSplitModeActive) return;
+            const clickedLayer = e.layer;
+            
+            if (!(clickedLayer instanceof L.Polyline)) return;
+
+            const latlngs = getFlatPolylineLatLngs(clickedLayer);
+            if (latlngs.length < 3) {
+                alert("This track is too short to split.");
+                return;
+            }
+
+            let closestIndex = 0;
+            let minDist = Infinity;
+            latlngs.forEach((ll, idx) => {
+                const dist = ll.distanceTo(e.latlng);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestIndex = idx;
                 }
             });
-            alert("Tracks smoothed.");
+
+            if (closestIndex === 0 || closestIndex === latlngs.length - 1) {
+                alert("Please click an interior point of the track to split it.");
+                return;
+            }
+
+            const part1 = latlngs.slice(0, closestIndex + 1);
+            const part2 = latlngs.slice(closestIndex);
+
+            const color1 = clickedLayer.options.color || colors[colorCounter++ % colors.length];
+            const color2 = colors[colorCounter++ % colors.length];
+
+            dataLayer.removeLayer(clickedLayer);
+
+            const p1 = L.polyline(part1, { color: color1, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            const p2 = L.polyline(part2, { color: color2, weight: 4, opacity: 0.85 }).addTo(dataLayer);
+            attachTrackPopup(p1);
+            attachTrackPopup(p2);
+
+            saveState();
+            
+            isSplitModeActive = false;
+            splitBtn.textContent = "Toggle Split Mode: OFF";
+            splitBtn.classList.remove('active');
+            map.getContainer().style.cursor = '';
+            
+            alert("Track successfully split into two segments!");
+        });
+
+        // --- GEOMAN LISTENERS ---
+        map.on('pm:create', (e) => {
+            if (e.layer instanceof L.Polyline) {
+                e.layer.setStyle({ color: colors[colorCounter++ % colors.length], weight: 4, opacity: 0.85 });
+                dataLayer.addLayer(e.layer);
+                attachTrackPopup(e.layer);
+            } else if (e.layer instanceof L.Marker) {
+                const ll = e.layer.getLatLng();
+                map.removeLayer(e.layer);
+                addWaypointToMap(ll.lat, ll.lng, 'New Marker', 'pin');
+            }
+            saveState();
+        });
+
+        map.on('pm:edit', () => { saveState(); });
+        map.on('pm:dragend', () => { saveState(); });
+        map.on('pm:remove', (e) => {
+            if (dataLayer.hasLayer(e.layer)) {
+                dataLayer.removeLayer(e.layer);
+            }
+            saveState();
+        });
+
+        // --- EXPORT LOGIC ---
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const mapCenter = map.getCenter();
+            
+            let exportData = {
+                mapConfig: {
+                    center: [mapCenter.lat, mapCenter.lng],
+                    zoom: map.getZoom(),
+                    bearing: currentBearing,
+                    overlayBounds: overlayBounds ? [
+                        [overlayBounds.getSouthWest().lat, overlayBounds.getSouthWest().lng],
+                        [overlayBounds.getNorthEast().lat, overlayBounds.getNorthEast().lng]
+                    ] : null
+                },
+                tracks: [],
+                waypoints: []
+            };
+
+            dataLayer.eachLayer((layer) => {
+                if (map.hasLayer(layer)) {
+                    if (layer instanceof L.Polyline && !layer._url) {
+                        const coords = getPolylineLatLngs(layer);
+                        if (coords.length > 0) {
+                            if (Array.isArray(coords[0][0])) {
+                                coords.forEach(subArray => {
+                                    exportData.tracks.push({
+                                        latlngs: subArray,
+                                        color: layer.options.color || colors[0]
+                                    });
+                                });
+                            } else {
+                                exportData.tracks.push({
+                                    latlngs: coords,
+                                    color: layer.options.color || colors[0]
+                                });
+                            }
+                        }
+                    } else if (layer instanceof L.Marker && !layer._url) {
+                        const latlng = layer.getLatLng();
+                        exportData.waypoints.push({ 
+                            lat: latlng.lat, 
+                            lon: latlng.lng, 
+                            name: layer.waypointName !== undefined ? layer.waypointName : '',
+                            type: layer.waypointType || 'cabin',
+                            labelAbove: !!layer.labelAbove
+                        });
+                    }
+                }
+            });
+
+            const jsContent = `const filteredGpxData = ${JSON.stringify(exportData, null, 2)};`;
+            const blob = new Blob([jsContent], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'filtered_data.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert("Successfully exported tracks, custom markers, track colors, map position, and overlay bounds to filtered_data.js!");
         });
     </script>
 </body>
