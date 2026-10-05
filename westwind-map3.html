@@ -20,9 +20,29 @@
             height: 100vh;
         }
 
-        #ui-panel {
+        /* --- COLLAPSIBLE UI PANEL --- */
+        #toggle-panel-btn {
             position: absolute;
             top: 10px;
+            right: 10px;
+            z-index: 1001;
+            width: auto;
+            padding: 8px 14px;
+            background: #0078A8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            font-weight: bold;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        #toggle-panel-btn:hover { background-color: #005f85; }
+
+        #ui-panel {
+            position: absolute;
+            top: 50px;
             right: 10px;
             background: rgba(255, 255, 255, 0.95);
             padding: 12px;
@@ -30,8 +50,13 @@
             z-index: 1000;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             max-width: 300px;
-            max-height: 90vh;
+            max-height: 80vh;
             overflow-y: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        #ui-panel.collapsed {
+            display: none;
         }
 
         button, select, input, textarea {
@@ -108,6 +133,114 @@
             font-size: 0.75em;
         }
 
+        /* --- DRAGGABLE COMPASS & LEGEND WIDGET --- */
+        #compass-legend-widget {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            background: rgba(15, 23, 42, 0.88);
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+            min-width: 175px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            user-select: none;
+        }
+
+        .widget-header {
+            font-weight: bold;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 4px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .widget-header::after {
+            content: "⋮⋮";
+            font-size: 1.1em;
+            color: #64748b;
+        }
+
+        .compass-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .compass-dial {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+        }
+
+        .compass-needle {
+            width: 0;
+            height: 0;
+            position: absolute;
+            transition: transform 0.2s ease-out;
+        }
+
+        /* North Pointer (Red) */
+        .compass-needle::before {
+            content: '';
+            position: absolute;
+            top: -13px;
+            left: -3px;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            border-bottom: 13px solid #ef4444;
+        }
+
+        /* South Pointer (White) */
+        .compass-needle::after {
+            content: '';
+            position: absolute;
+            top: 0px;
+            left: -3px;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            border-top: 13px solid #f8fafc;
+        }
+
+        .legend-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78em;
+            color: #e2e8f0;
+        }
+
+        .legend-color-bar {
+            width: 18px;
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
         /* --- MARKER STYLING & BASE ANIMATIONS --- */
         .map-icon-container {
             background: transparent;
@@ -163,6 +296,18 @@
             transition: font-size 0.15s ease-out, opacity 0.15s ease-out;
         }
 
+        /* --- UNBOXED PLAIN TEXT STYLING --- */
+        .map-icon-label.plain-text-label {
+            background: transparent !important;
+            box-shadow: none !important;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 5px rgba(0,0,0,0.9);
+            padding: 0;
+            margin: 0;
+        }
+
         /* --- DYNAMIC ZOOM SCALING (FAR ZOOM < 18) --- */
         .zoom-far .zoom-scalable .map-icon-symbol {
             font-size: 11px;
@@ -204,6 +349,10 @@
 </head>
 <body>
 
+    <!-- Panel Toggle Button -->
+    <button id="toggle-panel-btn">⚙️ Tools</button>
+
+    <!-- Main UI Control Panel -->
     <div id="ui-panel">
         <strong>Map & Track Editor</strong>
         
@@ -253,11 +402,45 @@
         <button onclick="addCustomMarker('outhouse', 'Outhouse')">+ Add Outhouse</button>
         <button onclick="addCustomMarker('steps', 'Steps')">+ Add Steps</button>
         <button onclick="addCustomMarker('detailsPin', 'Detail Pin')">+ Add Detail Pin</button>
-        <button onclick="addCustomMarker('text', 'Permanent Text')">+ Add Text Label</button>
+        <button onclick="addCustomMarker('text', 'Boxed Text')">+ Add Boxed Text</button>
+        <button onclick="addCustomMarker('plainText', 'Plain Text')">+ Add Plain Text (No Box)</button>
         <button onclick="addCustomMarker('detailsText', 'Detail Text')">+ Add Detail Text Label</button>
 
         <div class="section-title">Save Work</div>
         <button id="export-btn" style="background-color: #27ae60;">Export to filtered_data.js</button>
+    </div>
+
+    <!-- Draggable Compass & Legend Widget -->
+    <div id="compass-legend-widget">
+        <div class="widget-header" id="widget-drag-handle">Map Legend</div>
+        
+        <div class="compass-section">
+            <div class="compass-dial">
+                <div class="compass-needle" id="compass-needle"></div>
+            </div>
+            <div style="font-size: 0.8em; font-weight: bold; color: #cbd5e1;">
+                Orientation: <span id="bearing-text">North</span>
+            </div>
+        </div>
+
+        <div class="legend-list">
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #911eb4;"></div>
+                <span>Unmaintained Trails</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #4363d8;"></div>
+                <span>Hiking Trails</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #f032e6;"></div>
+                <span>Camp Paths</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color-bar" style="background-color: #3cb44b;"></div>
+                <span>Car Road</span>
+            </div>
+        </div>
     </div>
 
     <div id="map"></div>
@@ -284,6 +467,65 @@
             zoomDelta: 0.25,
             wheelPxPerZoomLevel: 120
         }).setView([45.03725084623786, -124.00293231010438], 17);
+
+        // --- COLLAPSIBLE UI PANEL ---
+        const togglePanelBtn = document.getElementById('toggle-panel-btn');
+        const uiPanel = document.getElementById('ui-panel');
+
+        togglePanelBtn.addEventListener('click', () => {
+            uiPanel.classList.toggle('collapsed');
+        });
+
+        // --- COMPASS & BEARING ENGINE ---
+        function updateCompass() {
+            const needle = document.getElementById('compass-needle');
+            const bearingText = document.getElementById('bearing-text');
+            
+            // Rotate needle opposite to map bearing to keep pointing to true North
+            needle.style.transform = `rotate(${-currentBearing}deg)`;
+
+            const normalized = (currentBearing % 360 + 360) % 360;
+            if (normalized === 0) bearingText.textContent = "North (0°)";
+            else if (normalized === 90) bearingText.textContent = "East (90°)";
+            else if (normalized === 180) bearingText.textContent = "South (180°)";
+            else if (normalized === 270) bearingText.textContent = "West (270°)";
+            else bearingText.textContent = `${Math.round(normalized)}°`;
+        }
+
+        updateCompass();
+
+        // --- DRAGGABLE WIDGET ENGINE ---
+        function makeDraggable(element, handle) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            handle.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+                element.style.bottom = 'auto';
+                element.style.right = 'auto';
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        makeDraggable(document.getElementById('compass-legend-widget'), document.getElementById('widget-drag-handle'));
 
         // --- ZOOM SCALING EVENT HANDLER ---
         function updateZoomClasses() {
@@ -357,8 +599,9 @@
                 camp: '⛺',
                 tree: '🌲',
                 pin: '📍',
-                detailsPin: '📍',
+                detailsPin: '📌',
                 text: '',
+                plainText: '',
                 detailsText: ''
             };
 
@@ -374,7 +617,10 @@
             }
 
             const trimmedName = (name || '').trim();
-            const labelClass = type === 'detailsText' ? 'map-icon-label details-text-label' : 'map-icon-label';
+            let labelClass = 'map-icon-label';
+            if (type === 'detailsText') labelClass += ' details-text-label';
+            if (type === 'plainText') labelClass += ' plain-text-label';
+
             const labelHtml = trimmedName 
                 ? `<div class="${labelClass}">${trimmedName.replace(/\n/g, '<br>')}</div>` 
                 : '';
@@ -410,7 +656,8 @@
                     <option value="camp" ${marker.waypointType === 'camp' ? 'selected' : ''}>⛺ Camp</option>
                     <option value="tree" ${marker.waypointType === 'tree' ? 'selected' : ''}>🌲 Tree / Landmark</option>
                     <option value="pin" ${marker.waypointType === 'pin' ? 'selected' : ''}>📍 Permanent Pin</option>
-                    <option value="text" ${marker.waypointType === 'text' ? 'selected' : ''}>🔤 Permanent Text Label</option>
+                    <option value="text" ${marker.waypointType === 'text' ? 'selected' : ''}>🔤 Boxed Text Label</option>
+                    <option value="plainText" ${marker.waypointType === 'plainText' ? 'selected' : ''}>💬 Plain Text (No Box, All Zooms)</option>
                     <option value="detailsText" ${marker.waypointType === 'detailsText' ? 'selected' : ''}>🔍 Detail Text (Auto-Hide on Zoom Out)</option>
                 </select>
 
@@ -649,7 +896,7 @@
                 if (!handleNW) {
                     handleNW = L.marker(overlayBounds.getNorthWest(), {
                         draggable: true,
-                        icon: L.divIcon({ className: 'overlay-handle-icon', html: '↖️', iconSize: [20,20], iconAnchor: [10,10] })
+                        icon: L.divIcon({ className: 'overlay-handle-icon', html: '↖️️', iconSize: [20,20], iconAnchor: [10,10] })
                     }).addTo(map);
                     handleNW.on('drag', updateOverlayFromHandles);
                 }
@@ -777,6 +1024,7 @@
                 if (filteredGpxData.mapConfig.bearing !== undefined) {
                     currentBearing = filteredGpxData.mapConfig.bearing;
                     map.setBearing(currentBearing);
+                    updateCompass();
                 }
                 if (filteredGpxData.mapConfig.overlayBounds) {
                     overlayBounds = L.latLngBounds(filteredGpxData.mapConfig.overlayBounds);
@@ -810,6 +1058,7 @@
         document.getElementById('rotate-btn').addEventListener('click', () => {
             currentBearing = (currentBearing - 90) % 360;
             map.setBearing(currentBearing);
+            updateCompass();
         });
 
         // --- SPLIT MODE LOGIC ---
