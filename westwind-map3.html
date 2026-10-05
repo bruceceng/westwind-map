@@ -108,6 +108,7 @@
             font-size: 0.75em;
         }
 
+        /* --- MARKER STYLING & BASE ANIMATIONS --- */
         .map-icon-container {
             background: transparent;
             border: none;
@@ -120,6 +121,7 @@
             align-items: center;
             justify-content: center;
             transform: translate(-50%, -50%);
+            transition: all 0.15s ease-out;
         }
         .map-icon-symbol {
             font-size: 22px;
@@ -127,12 +129,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: font-size 0.15s ease-out;
         }
         .map-icon-img {
             width: 24px;
             height: 24px;
             object-fit: contain;
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+            transition: width 0.15s ease-out, height 0.15s ease-out;
         }
         .map-icon-label {
             background: rgba(255, 255, 255, 0.95);
@@ -146,6 +150,33 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             margin-top: 2px;
             width: max-content;
+            transition: font-size 0.15s ease-out, opacity 0.15s ease-out;
+        }
+
+        /* --- DYNAMIC ZOOM RESPONSIVE SCALING --- */
+        /* Medium Zoom (Zoom level 14 to 15.99) */
+        .zoom-medium .map-icon-symbol {
+            font-size: 15px;
+        }
+        .zoom-medium .map-icon-img {
+            width: 16px;
+            height: 16px;
+        }
+        .zoom-medium .map-icon-label {
+            font-size: 9px;
+            padding: 1px 4px;
+        }
+
+        /* Far Zoom (Zoom level < 14) */
+        .zoom-far .map-icon-symbol {
+            font-size: 11px;
+        }
+        .zoom-far .map-icon-img {
+            width: 12px;
+            height: 12px;
+        }
+        .zoom-far .map-icon-label {
+            display: none !important; /* Completely hide captions when zoomed out */
         }
 
         .overlay-handle-icon {
@@ -244,11 +275,22 @@
             rotate: true,             
             bearing: currentBearing,
             rotateControl: false,
-            // Fine-grained zoom controls
-            zoomSnap: 0.25,          // Allows fractional zoom levels (17.0, 17.25, 17.5, etc.)
-            zoomDelta: 0.25,         // Changes + / - button zoom step size to 0.25
-            wheelPxPerZoomLevel: 120 // Higher number = slower, smaller steps when scrolling mouse wheel (default is 60)     
+            zoomSnap: 0.25,
+            zoomDelta: 0.25,
+            wheelPxPerZoomLevel: 120
         }).setView([45.03725084623786, -124.00293231010438], 17);
+
+        // --- ZOOM SCALING EVENT HANDLER ---
+        function updateZoomClasses() {
+            const currentZoom = map.getZoom();
+            const container = map.getContainer();
+            
+            // Toggle classes based on current map zoom level
+            container.classList.toggle('zoom-medium', currentZoom < 20 && currentZoom >= 18);
+            container.classList.toggle('zoom-far', currentZoom < 18);
+        }
+
+        map.on('zoom zoomend', updateZoomClasses);
 
         // --- TILE LAYERS ---
         const tileLayers = {
@@ -515,7 +557,6 @@
             }
         }
 
-        // Auto-load and display overlay on startup
         createOrUpdateOverlay();
         if (imageOverlay) {
             imageOverlay.addTo(map);
@@ -737,6 +778,8 @@
             }
         }
 
+        // Trigger zoom styling setup after map load
+        updateZoomClasses();
         setTimeout(saveState, 500);
 
         // --- NATIVE MAP ROTATION LOGIC ---
