@@ -123,6 +123,16 @@
             transform: translate(-50%, -50%);
             transition: all 0.15s ease-out;
         }
+        
+        /* Label Position Above Icon */
+        .map-icon-inner.label-above {
+            flex-direction: column-reverse;
+        }
+        .map-icon-inner.label-above .map-icon-label {
+            margin-top: 0;
+            margin-bottom: 2px;
+        }
+
         .map-icon-symbol {
             font-size: 22px;
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
@@ -153,30 +163,18 @@
             transition: font-size 0.15s ease-out, opacity 0.15s ease-out;
         }
 
-        /* --- DYNAMIC ZOOM RESPONSIVE SCALING --- */
-        /* Medium Zoom (Zoom level 14 to 15.99) */
-        .zoom-medium .map-icon-symbol {
-            font-size: 15px;
-        }
-        .zoom-medium .map-icon-img {
-            width: 16px;
-            height: 16px;
-        }
-        .zoom-medium .map-icon-label {
-            font-size: 9px;
-            padding: 1px 4px;
-        }
-
-        /* Far Zoom (Zoom level < 14) */
-        .zoom-far .map-icon-symbol {
+        /* --- DYNAMIC ZOOM SCALING (FAR ZOOM < 18) --- */
+        .zoom-far .zoom-scalable .map-icon-symbol {
             font-size: 11px;
         }
-        .zoom-far .map-icon-img {
+        .zoom-far .zoom-scalable .map-icon-img {
             width: 12px;
             height: 12px;
         }
-        .zoom-far .map-icon-label {
-            display: none !important; /* Completely hide captions when zoomed out */
+        /* Hide captions for cabins, water, outhouses, tents, steps, and detailsText when zoomed out */
+        .zoom-far .zoom-scalable .map-icon-label,
+        .zoom-far .details-text-label {
+            display: none !important;
         }
 
         .overlay-handle-icon {
@@ -249,7 +247,8 @@
         <button onclick="addCustomMarker('water', 'Water Spigot')">+ Add Water Spigot</button>
         <button onclick="addCustomMarker('outhouse', 'Outhouse')">+ Add Outhouse</button>
         <button onclick="addCustomMarker('steps', 'Steps')">+ Add Steps</button>
-        <button onclick="addCustomMarker('text', 'New Text Label')">+ Add Text Label</button>
+        <button onclick="addCustomMarker('text', 'Permanent Text')">+ Add Text Label</button>
+        <button onclick="addCustomMarker('detailsText', 'Detail Text')">+ Add Detail Text Label</button>
 
         <div class="section-title">Save Work</div>
         <button id="export-btn" style="background-color: #27ae60;">Export to filtered_data.js</button>
@@ -285,8 +284,6 @@
             const currentZoom = map.getZoom();
             const container = map.getContainer();
             
-            // Toggle classes based on current map zoom level
-            container.classList.toggle('zoom-medium', currentZoom < 20 && currentZoom >= 18);
             container.classList.toggle('zoom-far', currentZoom < 18);
         }
 
@@ -345,7 +342,7 @@
         }
 
         // --- ICON FACTORY ---
-        function createCustomIcon(type, name) {
+        function createCustomIcon(type, name, labelAbove = false) {
             const iconMap = {
                 cabin: '🏠',
                 water: '🚰',
@@ -353,7 +350,9 @@
                 steps: 'steps.png',
                 camp: '⛺',
                 tree: '🌲',
-                pin: '📍'
+                pin: '📍',
+                text: '',
+                detailsText: ''
             };
 
             const iconValue = iconMap[type] || '';
@@ -368,13 +367,19 @@
             }
 
             const trimmedName = (name || '').trim();
+            const labelClass = type === 'detailsText' ? 'map-icon-label details-text-label' : 'map-icon-label';
             const labelHtml = trimmedName 
-                ? `<div class="map-icon-label">${trimmedName.replace(/\n/g, '<br>')}</div>` 
+                ? `<div class="${labelClass}">${trimmedName.replace(/\n/g, '<br>')}</div>` 
                 : '';
 
+            // Types that hide text/scale down when zoomed out (< 18)
+            const scalableTypes = ['cabin', 'water', 'outhouse', 'camp', 'steps', 'detailsText'];
+            const scalableClass = scalableTypes.includes(type) ? 'zoom-scalable' : '';
+            const positionClass = labelAbove ? 'label-above' : '';
+
             return L.divIcon({
-                className: 'map-icon-container',
-                html: `<div class="map-icon-inner">${symbolHtml}${labelHtml}</div>`,
+                className: `map-icon-container ${scalableClass}`,
+                html: `<div class="map-icon-inner ${positionClass}">${symbolHtml}${labelHtml}</div>`,
                 iconSize: null
             });
         }
@@ -388,7 +393,7 @@
                 <textarea id="pop-name" style="width:100%; height:45px; margin-bottom:6px; padding:4px; box-sizing:border-box; resize:vertical;">${marker.waypointName || ''}</textarea>
                 
                 <label style="font-size:11px; display:block;">Icon Type:</label>
-                <select id="pop-type" style="width:100%; margin-bottom:8px; padding:4px; box-sizing:border-box;">
+                <select id="pop-type" style="width:100%; margin-bottom:6px; padding:4px; box-sizing:border-box;">
                     <option value="cabin" ${marker.waypointType === 'cabin' ? 'selected' : ''}>🏠 Cabin</option>
                     <option value="water" ${marker.waypointType === 'water' ? 'selected' : ''}>🚰 Water Spigot</option>
                     <option value="outhouse" ${marker.waypointType === 'outhouse' ? 'selected' : ''}>🚻 Outhouse</option>
@@ -396,8 +401,14 @@
                     <option value="camp" ${marker.waypointType === 'camp' ? 'selected' : ''}>⛺ Camp</option>
                     <option value="tree" ${marker.waypointType === 'tree' ? 'selected' : ''}>🌲 Tree / Landmark</option>
                     <option value="pin" ${marker.waypointType === 'pin' ? 'selected' : ''}>📍 Pin</option>
-                    <option value="text" ${marker.waypointType === 'text' ? 'selected' : ''}>🔤 Text Label Only</option>
+                    <option value="text" ${marker.waypointType === 'text' ? 'selected' : ''}>🔤 Permanent Text Label</option>
+                    <option value="detailsText" ${marker.waypointType === 'detailsText' ? 'selected' : ''}>🔍 Detail Text (Auto-Hide on Zoom Out)</option>
                 </select>
+
+                <label style="font-size:11px; display:flex; align-items:center; gap:6px; margin-bottom:8px; cursor:pointer;">
+                    <input type="checkbox" id="pop-label-above" ${marker.labelAbove ? 'checked' : ''} style="width:auto; margin:0;">
+                    Place Label Above Icon
+                </label>
 
                 <div style="display:flex; gap:4px;">
                     <button id="pop-save" style="background:#27ae60; padding:6px; color:white; border:none; border-radius:3px; cursor:pointer; flex:1;">Save</button>
@@ -410,13 +421,15 @@
             marker.on('popupopen', () => {
                 const nameInput = popupNode.querySelector('#pop-name');
                 const typeSelect = popupNode.querySelector('#pop-type');
+                const labelAboveCheckbox = popupNode.querySelector('#pop-label-above');
                 const saveBtn = popupNode.querySelector('#pop-save');
                 const delBtn = popupNode.querySelector('#pop-del');
 
                 saveBtn.onclick = () => {
                     marker.waypointName = nameInput.value.trim();
                     marker.waypointType = typeSelect.value;
-                    marker.setIcon(createCustomIcon(marker.waypointType, marker.waypointName));
+                    marker.labelAbove = labelAboveCheckbox.checked;
+                    marker.setIcon(createCustomIcon(marker.waypointType, marker.waypointName, marker.labelAbove));
                     marker.closePopup();
                     saveState();
                 };
@@ -477,14 +490,15 @@
             });
         }
 
-        function addWaypointToMap(lat, lon, name, type) {
+        function addWaypointToMap(lat, lon, name, type, labelAbove = false) {
             const marker = L.marker([lat, lon], {
-                icon: createCustomIcon(type, name),
+                icon: createCustomIcon(type, name, labelAbove),
                 draggable: true,
                 rotateWithView: false
             });
             marker.waypointName = name || '';
             marker.waypointType = type || 'cabin';
+            marker.labelAbove = !!labelAbove;
 
             attachMarkerPopup(marker);
             marker.on('dragend', () => { saveState(); });
@@ -495,7 +509,7 @@
 
         window.addCustomMarker = function(type, defaultName) {
             const center = map.getCenter();
-            addWaypointToMap(center.lat, center.lng, defaultName, type);
+            addWaypointToMap(center.lat, center.lng, defaultName, type, false);
             saveState();
         };
 
@@ -698,7 +712,8 @@
                             lat: ll.lat,
                             lon: ll.lng,
                             name: layer.waypointName || '',
-                            type: layer.waypointType || 'cabin'
+                            type: layer.waypointType || 'cabin',
+                            labelAbove: !!layer.labelAbove
                         });
                     }
                 }
@@ -730,7 +745,7 @@
                 attachTrackPopup(polyline);
             });
             previousState.waypoints.forEach(w => {
-                addWaypointToMap(w.lat, w.lon, w.name, w.type);
+                addWaypointToMap(w.lat, w.lon, w.name, w.type, w.labelAbove);
             });
 
             isInternalUpdate = false;
@@ -770,7 +785,7 @@
             }
             if (filteredGpxData.waypoints && filteredGpxData.waypoints.length > 0) {
                 filteredGpxData.waypoints.forEach(wpt => {
-                    addWaypointToMap(wpt.lat, wpt.lon, wpt.name || '', wpt.type || 'cabin');
+                    addWaypointToMap(wpt.lat, wpt.lon, wpt.name || '', wpt.type || 'cabin', wpt.labelAbove || false);
                 });
             }
             if (!filteredGpxData.mapConfig && dataLayer.getLayers().length > 0) {
@@ -919,7 +934,8 @@
                             lat: latlng.lat, 
                             lon: latlng.lng, 
                             name: layer.waypointName !== undefined ? layer.waypointName : '',
-                            type: layer.waypointType || 'cabin'
+                            type: layer.waypointType || 'cabin',
+                            labelAbove: !!layer.labelAbove
                         });
                     }
                 }
